@@ -1,4 +1,6 @@
 #include <mbgl/test/stub_file_source.hpp>
+#include <mbgl/util/async_request.hpp>
+#include <mbgl/storage/resource_options.hpp>
 
 namespace mbgl {
 
@@ -17,8 +19,11 @@ public:
     StubFileSource& fileSource;
 };
 
-StubFileSource::StubFileSource(ResponseType type_)
-        : type(type_) {
+StubFileSource::StubFileSource(ResponseType type_):
+    StubFileSource::StubFileSource(ResourceOptions().withTileServerOptions(TileServerOptions::MapTilerConfiguration()), type_) {}
+
+StubFileSource::StubFileSource(const ResourceOptions& options, ResponseType type_)
+        : type(type_), resourceOptions(options.clone()) {
     if (type == ResponseType::Synchronous) {
         return;
     }
@@ -59,7 +64,7 @@ std::unique_ptr<AsyncRequest> StubFileSource::request(const Resource& resource, 
     } else {
         pending.emplace(req.get(), std::make_tuple(resource, response, callback));
     }
-    return std::move(req);
+    return req;
 }
 
 void StubFileSource::remove(AsyncRequest* req) {
@@ -67,6 +72,15 @@ void StubFileSource::remove(AsyncRequest* req) {
     if (it != pending.end()) {
         pending.erase(it);
     }
+}
+
+void StubFileSource::setProperty(const std::string& key, const mapbox::base::Value& value) {
+    properties[key] = value;
+}
+
+mapbox::base::Value StubFileSource::getProperty(const std::string& key) const {
+    auto it = properties.find(key);
+    return (it != properties.end()) ? it->second : mapbox::base::Value();
 }
 
 optional<Response> StubFileSource::defaultResponse(const Resource& resource) {
@@ -98,6 +112,14 @@ optional<Response> StubFileSource::defaultResponse(const Resource& resource) {
 
     // The above switch is exhaustive, but placate GCC nonetheless:
     return Response();
+}
+
+void StubFileSource::setResourceOptions(ResourceOptions options) {
+    resourceOptions = options;
+}
+
+ResourceOptions StubFileSource::getResourceOptions() {
+    return resourceOptions.clone();
 }
 
 } // namespace mbgl

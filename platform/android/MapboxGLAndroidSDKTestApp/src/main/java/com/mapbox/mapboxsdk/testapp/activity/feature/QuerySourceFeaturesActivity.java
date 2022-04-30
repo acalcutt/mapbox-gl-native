@@ -1,10 +1,12 @@
 package com.mapbox.mapboxsdk.testapp.activity.feature;
 
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.JsonObject;
 import com.mapbox.geojson.Feature;
 import com.mapbox.geojson.FeatureCollection;
@@ -43,7 +45,7 @@ public class QuerySourceFeaturesActivity extends AppCompatActivity {
     mapView.getMapAsync(map -> {
       this.mapboxMap = map;
       mapboxMap.getStyle(this::initStyle);
-      mapboxMap.setStyle(Style.MAPBOX_STREETS);
+      mapboxMap.setStyle(Style.getPredefinedStyle("Streets"));
     });
   }
 

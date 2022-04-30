@@ -2,9 +2,11 @@ package com.mapbox.mapboxsdk.testapp.activity.style;
 
 import android.graphics.Color;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.mapbox.geojson.Point;
+import com.mapbox.geojson.Polygon;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
@@ -13,7 +15,6 @@ import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.style.layers.FillExtrusionLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 import com.mapbox.mapboxsdk.testapp.R;
-import com.mapbox.geojson.Polygon;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,7 +39,7 @@ public class FillExtrusionActivity extends AppCompatActivity {
     mapView = findViewById(R.id.mapView);
     mapView.onCreate(savedInstanceState);
     mapView.getMapAsync(mapboxMap -> {
-      mapboxMap.setStyle(Style.MAPBOX_STREETS, style -> {
+      mapboxMap.setStyle(Style.getPredefinedStyle("Streets"), style -> {
         List<List<Point>> lngLats = Collections.singletonList(
           Arrays.asList(
             Point.fromLngLat(5.12112557888031, 52.09071040847704),

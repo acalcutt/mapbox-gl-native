@@ -2,24 +2,24 @@ package com.mapbox.mapboxsdk.testapp.activity.location;
 
 import android.location.Location;
 
-import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.geometry.LatLngBounds;
+import com.mapbox.mapboxsdk.maps.Style;
 
 import java.util.Random;
 
 import timber.log.Timber;
 
 /**
- * Useful utilities used throughout the testapp.
+ * Useful utilities used throughout the test app.
  */
 public class Utils {
 
   private static final String[] STYLES = new String[] {
-    Style.MAPBOX_STREETS,
-    Style.OUTDOORS,
-    Style.LIGHT,
-    Style.DARK,
-    Style.SATELLITE_STREETS
+    Style.getPredefinedStyle("Streets"),
+    Style.getPredefinedStyle("Outdoor"),
+    Style.getPredefinedStyle("Bright"),
+    Style.getPredefinedStyle("Pastel"),
+    Style.getPredefinedStyle("Satellite Hybrid")
   };
 
   private static int index;

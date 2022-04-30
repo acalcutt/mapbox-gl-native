@@ -1,15 +1,21 @@
 {
-  "name": "@mapbox/mapbox-gl-native",
-  "version": "5.0.2",
-  "description": "Renders map tiles with Mapbox GL",
+  "name": "@maplibre/maplibre-gl-native",
+  "version": "5.0.0",
+  "description": "Renders map tiles with Maplibre GL",
   "keywords": [
-    "mapbox",
+    "maplibre",
     "gl"
+  ],
+  "directories": {
+    "lib": "lib"
+  },
+  "files": [
+    "lib"
   ],
   "main": "platform/node/index.js",
   "repository": {
     "type": "git",
-    "url": "git://github.com/mapbox/mapbox-gl-native.git"
+    "url": "git://github.com/maplibre/maplibre-gl-native.git"
   },
   "license": "BSD-2-Clause",
   "dependencies": {
@@ -28,7 +34,7 @@
     "d3-queue": "3.0.7",
     "diff": "4.0.1",
     "ejs": "^2.5.7",
-    "esm": "~3.0.84",
+    "esm": "~3.2.25",
     "express": "^4.11.1",
     "json-stringify-pretty-compact": "^2.0.0",
     "jsonwebtoken": "^8.3.0",

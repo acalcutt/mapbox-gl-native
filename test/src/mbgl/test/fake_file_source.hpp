@@ -2,9 +2,13 @@
 
 #include <mbgl/storage/file_source.hpp>
 #include <mbgl/storage/online_file_source.hpp>
+#include <mbgl/storage/resource.hpp>
+#include <mbgl/util/async_request.hpp>
+#include <mbgl/storage/resource_options.hpp>
 
 #include <algorithm>
 #include <list>
+
 
 namespace mbgl {
 
@@ -38,30 +42,49 @@ public:
         }
     };
 
+    FakeFileSource(const ResourceOptions& options): resourceOptions(options.clone()) {}
+    FakeFileSource(): FakeFileSource(ResourceOptions::Default()) {}
+
     std::unique_ptr<AsyncRequest> request(const Resource& resource, Callback callback) override {
         return std::make_unique<FakeFileRequest>(resource, callback, requests);
     }
+
+    bool canRequest(const Resource&) const override { return true; }
 
     bool respond(Resource::Kind kind, const Response& response) {
         auto it = std::find_if(requests.begin(), requests.end(), [&] (FakeFileRequest* fakeRequest) {
             return fakeRequest->resource.kind == kind;
         });
 
-        if (it != requests.end()) {
+        const bool requestFound = (it != requests.end());
+
+        if (requestFound) {
             // Copy the callback, in case calling it deallocates the AsyncRequest.
             Callback callback_ = (*it)->callback;
             callback_(response);
         }
 
-        return it != requests.end();
+        return requestFound;
     }
 
     std::list<FakeFileRequest*> requests;
 
+    void setResourceOptions(ResourceOptions options) override {
+        resourceOptions = options;
+    }
+    ResourceOptions getResourceOptions() override {
+        return resourceOptions.clone();
+    }
+
+private:
+    ResourceOptions resourceOptions;
 };
 
-class FakeOnlineFileSource : public OnlineFileSource, public FakeFileSource {
+class FakeOnlineFileSource : public FakeFileSource {
 public:
+    FakeOnlineFileSource(): FakeOnlineFileSource(ResourceOptions::Default()) {}
+    FakeOnlineFileSource(const ResourceOptions& options): FakeFileSource(options) {}
+
     std::unique_ptr<AsyncRequest> request(const Resource& resource, Callback callback) override {
         return FakeFileSource::request(resource, callback);
     }
@@ -69,7 +92,12 @@ public:
     bool respond(Resource::Kind kind, const Response& response) {
         return FakeFileSource::respond(kind, response);
     }
-};
 
+    mapbox::base::Value getProperty(const std::string& property) const override {
+        return onlineFs->getProperty(property);
+    }
+
+    std::unique_ptr<FileSource> onlineFs = std::make_unique<OnlineFileSource>(ResourceOptions::Default());
+};
 
 } // namespace mbgl

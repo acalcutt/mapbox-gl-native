@@ -2,15 +2,16 @@ package com.mapbox.mapboxsdk.testapp.activity.camera;
 
 import android.graphics.Point;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
-import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
+import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.maps.UiSettings;
 import com.mapbox.mapboxsdk.testapp.R;
 
@@ -34,7 +35,7 @@ public class ManualZoomActivity extends AppCompatActivity {
     mapView.onCreate(savedInstanceState);
     mapView.getMapAsync(mapboxMap -> {
       ManualZoomActivity.this.mapboxMap = mapboxMap;
-      mapboxMap.setStyle(new Style.Builder().fromUri(Style.SATELLITE));
+      mapboxMap.setStyle(new Style.Builder().fromUri(Style.getPredefinedStyle("Satellite Hybrid")));
       UiSettings uiSettings = ManualZoomActivity.this.mapboxMap.getUiSettings();
       uiSettings.setAllGesturesEnabled(false);
     });

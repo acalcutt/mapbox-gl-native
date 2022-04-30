@@ -1,27 +1,39 @@
-// This file is generated. Edit android/platform/scripts/generate-style-code.js, then run `make android-style-code`.
+// This file is generated. Edit scripts/generate-style-code.js, then run `make style-code`.
 
 package com.mapbox.mapboxsdk.testapp.style;
 
 import android.graphics.Color;
-import android.support.test.annotation.UiThreadTest;
-import android.support.test.runner.AndroidJUnit4;
 
+import androidx.test.annotation.UiThreadTest;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+
+import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.maps.BaseLayerTest;
-import org.junit.Before;
-import timber.log.Timber;
-
-import com.mapbox.mapboxsdk.style.expressions.Expression;
 import com.mapbox.mapboxsdk.style.layers.HillshadeLayer;
+import com.mapbox.mapboxsdk.style.layers.TransitionOptions;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import static com.mapbox.mapboxsdk.style.expressions.Expression.*;
-import static org.junit.Assert.*;
-import static com.mapbox.mapboxsdk.style.layers.Property.*;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.*;
+import java.util.ArrayList;
+import java.util.List;
 
-import com.mapbox.mapboxsdk.style.layers.TransitionOptions;
+import timber.log.Timber;
+
+import static com.mapbox.mapboxsdk.style.layers.Property.HILLSHADE_ILLUMINATION_ANCHOR_MAP;
+import static com.mapbox.mapboxsdk.style.layers.Property.NONE;
+import static com.mapbox.mapboxsdk.style.layers.Property.VISIBLE;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.hillshadeAccentColor;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.hillshadeExaggeration;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.hillshadeHighlightColor;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.hillshadeIlluminationAnchor;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.hillshadeIlluminationDirection;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.hillshadeShadowColor;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.visibility;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 /**
  * Basic smoke tests for HillshadeLayer
@@ -30,6 +42,19 @@ import com.mapbox.mapboxsdk.style.layers.TransitionOptions;
 public class HillshadeLayerTest extends BaseLayerTest {
 
   private HillshadeLayer layer;
+  private final List<Point> pointsList = new ArrayList<Point>() {
+    {
+      add(Point.fromLngLat(55.30122473231012, 25.26476622289597));
+      add(Point.fromLngLat(55.29743486255916, 25.25827212207261));
+      add(Point.fromLngLat(55.28978863411328, 25.251356725509737));
+      add(Point.fromLngLat(55.300027931336984, 25.246425506635504));
+      add(Point.fromLngLat(55.307474692951274, 25.244200378933655));
+      add(Point.fromLngLat(55.31212891895635, 25.256408010450187));
+      add(Point.fromLngLat(55.30774064871093, 25.26266169122738));
+      add(Point.fromLngLat(55.301357710197806, 25.264946609615492));
+      add(Point.fromLngLat(55.30122473231012, 25.26476622289597));
+    }
+  };
 
   @Before
   @UiThreadTest

@@ -11,7 +11,9 @@
 
 namespace mbgl {
 
-HTTPFileSource::Impl::Impl() : m_manager(new QNetworkAccessManager(this))
+HTTPFileSource::Impl::Impl(const ResourceOptions& options)
+    : m_manager(new QNetworkAccessManager(this)),
+      m_resourceOptions(options.clone())
 {
     QNetworkProxyFactory::setUseSystemConfiguration(true);
 }
@@ -20,7 +22,7 @@ void HTTPFileSource::Impl::request(HTTPRequest* req)
 {
     QUrl url = req->requestUrl();
 
-    QPair<QNetworkReply*, QVector<HTTPRequest*>>& data = m_pending[url];
+    QPair<QPointer<QNetworkReply>, QVector<HTTPRequest*>>& data = m_pending[url];
     QVector<HTTPRequest*>& requestsVector = data.second;
     requestsVector.append(req);
 
@@ -29,11 +31,22 @@ void HTTPFileSource::Impl::request(HTTPRequest* req)
     }
 
     QNetworkRequest networkRequest = req->networkRequest();
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#   if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
+    networkRequest.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                                QNetworkRequest::NoLessSafeRedirectPolicy);
+#   elif QT_VERSION >= QT_VERSION_CHECK(5, 6, 0)
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+#   endif
+#endif
 
     data.first = m_manager->get(networkRequest);
-    connect(data.first, SIGNAL(finished()), this, SLOT(onReplyFinished()));
-    connect(data.first, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(onReplyFinished()));
+    connect(data.first, &QNetworkReply::finished, this, &HTTPFileSource::Impl::onReplyFinished);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    connect(data.first, &QNetworkReply::errorOccurred, this, &HTTPFileSource::Impl::onReplyFinished);
+#else
+    connect(data.first, &QNetworkReply::error, this, &HTTPFileSource::Impl::onReplyFinished);
+#endif
 }
 
 void HTTPFileSource::Impl::cancel(HTTPRequest* req)
@@ -45,7 +58,7 @@ void HTTPFileSource::Impl::cancel(HTTPRequest* req)
         return;
     }
 
-    QPair<QNetworkReply*, QVector<HTTPRequest*>>& data = it.value();
+    QPair<QPointer<QNetworkReply>, QVector<HTTPRequest*>>& data = it.value();
     QNetworkReply* reply = data.first;
     QVector<HTTPRequest*>& requestsVector = data.second;
 
@@ -58,7 +71,7 @@ void HTTPFileSource::Impl::cancel(HTTPRequest* req)
 
     if (requestsVector.empty()) {
         m_pending.erase(it);
-        reply->abort();
+        if (reply) reply->abort();
     }
 }
 
@@ -87,8 +100,18 @@ void HTTPFileSource::Impl::onReplyFinished()
     reply->deleteLater();
 }
 
-HTTPFileSource::HTTPFileSource()
-    : impl(std::make_unique<Impl>()) {
+void HTTPFileSource::Impl::setResourceOptions(ResourceOptions options)
+{
+    m_resourceOptions = options;
+}
+
+ResourceOptions HTTPFileSource::Impl::getResourceOptions()
+{
+    return m_resourceOptions.clone();
+}
+
+HTTPFileSource::HTTPFileSource(const ResourceOptions& options)
+    : impl(std::make_unique<Impl>(options)) {
 }
 
 HTTPFileSource::~HTTPFileSource() = default;
@@ -96,6 +119,14 @@ HTTPFileSource::~HTTPFileSource() = default;
 std::unique_ptr<AsyncRequest> HTTPFileSource::request(const Resource& resource, Callback callback)
 {
     return std::make_unique<HTTPRequest>(impl.get(), resource, callback);
+}
+
+void HTTPFileSource::setResourceOptions(ResourceOptions options) {
+    impl->setResourceOptions(options.clone());
+}
+
+ResourceOptions HTTPFileSource::getResourceOptions() {
+    return impl->getResourceOptions();
 }
 
 } // namespace mbgl

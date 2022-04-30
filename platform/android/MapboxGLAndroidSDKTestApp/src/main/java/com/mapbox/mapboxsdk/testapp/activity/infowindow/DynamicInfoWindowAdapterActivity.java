@@ -2,10 +2,11 @@ package com.mapbox.mapboxsdk.testapp.activity.infowindow;
 
 import android.graphics.Color;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.content.res.ResourcesCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.res.ResourcesCompat;
 
 import com.mapbox.mapboxsdk.annotations.InfoWindow;
 import com.mapbox.mapboxsdk.annotations.Marker;
@@ -71,7 +72,7 @@ public class DynamicInfoWindowAdapterActivity extends AppCompatActivity implemen
   public void onMapReady(@NonNull MapboxMap map) {
     mapboxMap = map;
 
-    map.setStyle(Style.MAPBOX_STREETS);
+    map.setStyle(Style.getPredefinedStyle("Streets"));
 
     // Add info window adapter
     addCustomInfoWindowAdapter(mapboxMap);

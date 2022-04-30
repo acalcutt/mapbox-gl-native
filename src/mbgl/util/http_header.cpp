@@ -1,10 +1,20 @@
 #include <mbgl/util/http_header.hpp>
 
+#include <mbgl/util/chrono.hpp>
 #include <mbgl/util/string.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4828)
+#endif
 
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix_core.hpp>
 #include <boost/spirit/include/phoenix_operator.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 namespace mbgl {
 namespace http {
@@ -31,7 +41,7 @@ optional<Timestamp> parseRetryHeaders(const optional<std::string>& retryAfter,
     if (retryAfter) {
         try {
             auto secs = std::chrono::seconds(std::stoi(*retryAfter));
-            return std::chrono::time_point_cast<Seconds>(std::chrono::system_clock::now() + secs);
+            return std::chrono::time_point_cast<Seconds>(util::now() + secs);
         } catch (...) {
             return util::parseTimestamp((*retryAfter).c_str());
         }

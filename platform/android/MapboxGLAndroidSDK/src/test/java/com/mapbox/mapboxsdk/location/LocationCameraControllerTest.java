@@ -1,6 +1,7 @@
 package com.mapbox.mapboxsdk.location;
 
 import android.graphics.PointF;
+import android.graphics.RectF;
 import android.location.Location;
 
 import com.mapbox.android.gestures.AndroidGesturesManager;
@@ -40,6 +41,8 @@ import static junit.framework.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -54,7 +57,7 @@ public class LocationCameraControllerTest {
     MapboxMap mapboxMap = mock(MapboxMap.class);
     LocationCameraController camera = buildCamera(mapboxMap);
     camera.initializeOptions(mock(LocationComponentOptions.class));
-
+    camera.setEnabled(true);
     camera.setCameraMode(TRACKING_GPS);
 
     verify(mapboxMap).cancelTransitions();
@@ -73,6 +76,7 @@ public class LocationCameraControllerTest {
     camera.setCameraMode(TRACKING_GPS);
 
     verify(moveGestureDetector).setMoveThreshold(moveThreshold);
+    verify(moveGestureDetector, times(0)).setMoveThresholdRect(any(RectF.class));
   }
 
   @Test
@@ -89,6 +93,7 @@ public class LocationCameraControllerTest {
 
     verify(moveGestureDetector, times(0)).setMoveThreshold(moveThreshold);
     verify(moveGestureDetector, times(0)).setMoveThreshold(0f);
+    verify(moveGestureDetector, times(0)).setMoveThresholdRect(any(RectF.class));
   }
 
   @Test
@@ -102,6 +107,7 @@ public class LocationCameraControllerTest {
     camera.setCameraMode(NONE);
 
     verify(moveGestureDetector, times(2)).setMoveThreshold(0f); // one for initialization
+    verify(moveGestureDetector, times(2)).setMoveThresholdRect(null); // one for initialization
   }
 
   @Test
@@ -277,13 +283,22 @@ public class LocationCameraControllerTest {
   @Test
   public void onNewLatLngValue_focalPointIsAdjusted() {
     MapboxMap mapboxMap = mock(MapboxMap.class);
-    UiSettings uiSettings = mock(UiSettings.class);
-    when(mapboxMap.getUiSettings()).thenReturn(uiSettings);
+    Transform transform = mock(Transform.class);
+
+    final MapboxMap.OnCameraMoveListener[] listener = {null};
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(InvocationOnMock invocation) {
+        listener[0] = (MapboxMap.OnCameraMoveListener) invocation.getArguments()[0];
+        return null;
+      }
+    }).when(mapboxMap).addOnCameraMoveListener(any(MapboxMap.OnCameraMoveListener.class));
+
     Projection projection = mock(Projection.class);
     PointF pointF = mock(PointF.class);
     when(projection.toScreenLocation(any(LatLng.class))).thenReturn(pointF);
     when(mapboxMap.getProjection()).thenReturn(projection);
-    LocationCameraController camera = buildCamera(mapboxMap);
+    LocationCameraController camera = buildCamera(mapboxMap, transform);
     LocationComponentOptions options = mock(LocationComponentOptions.class);
     when(options.trackingGesturesManagement()).thenReturn(true);
     camera.initializeOptions(options);
@@ -291,7 +306,12 @@ public class LocationCameraControllerTest {
     LatLng latLng = mock(LatLng.class);
 
     getAnimationListener(ANIMATOR_CAMERA_LATLNG, camera.getAnimationListeners()).onNewAnimationValue(latLng);
+    verify(transform).moveCamera(any(MapboxMap.class), any(CameraUpdate.class),
+      nullable(MapboxMap.CancelableCallback.class));
 
+    UiSettings uiSettings = mock(UiSettings.class);
+    when(mapboxMap.getUiSettings()).thenReturn(uiSettings);
+    listener[0].onCameraMove();
     verify(uiSettings).setFocalPoint(pointF);
   }
 
@@ -496,6 +516,190 @@ public class LocationCameraControllerTest {
   }
 
   @Test
+  public void gesturesManagement_moveGesture_notTracking() {
+    MoveGestureDetector moveGestureDetector = mock(MoveGestureDetector.class);
+    when(moveGestureDetector.getPointersCount()).thenReturn(1);
+    LocationCameraController camera = buildCamera(moveGestureDetector);
+    LocationComponentOptions options = mock(LocationComponentOptions.class);
+    when(options.trackingGesturesManagement()).thenReturn(true);
+    float initial = 100;
+    float multiFinger = 200;
+    RectF multiFingerArea = mock(RectF.class);
+    when(options.trackingInitialMoveThreshold()).thenReturn(initial);
+    when(options.trackingMultiFingerMoveThreshold()).thenReturn(multiFinger);
+    when(options.trackingMultiFingerProtectedMoveArea()).thenReturn(multiFingerArea);
+    camera.initializeOptions(options);
+
+    camera.onMoveListener.onMoveBegin(moveGestureDetector);
+
+    verify(moveGestureDetector, times(2)).setMoveThreshold(0);
+    verify(moveGestureDetector, times(2)).setMoveThresholdRect(null);
+  }
+
+  @Test
+  public void gesturesManagement_moveGesture_singlePointer_tracking() {
+    MoveGestureDetector moveGestureDetector = mock(MoveGestureDetector.class);
+    when(moveGestureDetector.getPointersCount()).thenReturn(1);
+    LocationCameraController camera = buildCamera(moveGestureDetector);
+    LocationComponentOptions options = mock(LocationComponentOptions.class);
+    when(options.trackingGesturesManagement()).thenReturn(true);
+    float initial = 100;
+    when(options.trackingInitialMoveThreshold()).thenReturn(initial);
+    camera.initializeOptions(options);
+
+    camera.setCameraMode(TRACKING);
+    when(moveGestureDetector.getMoveThreshold()).thenReturn(initial);
+    camera.onMoveListener.onMoveBegin(moveGestureDetector);
+
+    verify(moveGestureDetector, atMost(1)).setMoveThreshold(initial);
+    verify(moveGestureDetector, times(0)).setMoveThresholdRect(any(RectF.class));
+  }
+
+  @Test
+  public void gesturesManagement_moveGesture_singlePointer_tracking_duplicateCall() {
+    MoveGestureDetector moveGestureDetector = mock(MoveGestureDetector.class);
+    when(moveGestureDetector.getPointersCount()).thenReturn(1);
+    LocationCameraController camera = buildCamera(moveGestureDetector);
+    LocationComponentOptions options = mock(LocationComponentOptions.class);
+    when(options.trackingGesturesManagement()).thenReturn(true);
+    float initial = 100;
+    when(options.trackingInitialMoveThreshold()).thenReturn(initial);
+    camera.initializeOptions(options);
+
+    camera.setCameraMode(TRACKING);
+    when(moveGestureDetector.getMoveThreshold()).thenReturn(initial);
+    camera.onMoveListener.onMoveBegin(moveGestureDetector);
+
+    verify(moveGestureDetector, atMost(1)).setMoveThreshold(initial);
+    verify(moveGestureDetector, times(0)).setMoveThresholdRect(any(RectF.class));
+  }
+
+  @Test
+  public void gesturesManagement_moveGesture_singlePointer_tracking_thresholdMet() {
+    MoveGestureDetector moveGestureDetector = mock(MoveGestureDetector.class);
+    when(moveGestureDetector.getPointersCount()).thenReturn(1);
+    LocationCameraController camera = buildCamera(moveGestureDetector);
+    LocationComponentOptions options = mock(LocationComponentOptions.class);
+    when(options.trackingGesturesManagement()).thenReturn(true);
+    float initial = 100;
+    when(options.trackingInitialMoveThreshold()).thenReturn(initial);
+    camera.initializeOptions(options);
+
+    // verify the number of detector interruptions
+    camera.setCameraMode(TRACKING);
+    camera.onMoveListener.onMoveBegin(moveGestureDetector);
+    when(moveGestureDetector.getMoveThreshold()).thenReturn(initial);
+    camera.onMoveListener.onMove(moveGestureDetector);
+    verify(moveGestureDetector, times(1)).interrupt();
+    camera.onMoveListener.onMoveEnd(moveGestureDetector);
+    camera.onMoveListener.onMoveBegin(moveGestureDetector);
+    camera.onMoveListener.onMove(moveGestureDetector);
+    verify(moveGestureDetector, times(2)).interrupt();
+    camera.onMoveListener.onMoveEnd(moveGestureDetector);
+    camera.onMoveListener.onMoveBegin(moveGestureDetector);
+    camera.onMoveListener.onMove(moveGestureDetector);
+    camera.onMoveListener.onMoveEnd(moveGestureDetector);
+
+    verify(moveGestureDetector, times(2)).interrupt();
+
+    // verify that threshold are reset
+    ArgumentCaptor<Float> moveThresholdCaptor = ArgumentCaptor.forClass(Float.class);
+    verify(moveGestureDetector, atLeastOnce()).setMoveThreshold(moveThresholdCaptor.capture());
+    org.junit.Assert.assertEquals(Float.valueOf(0), moveThresholdCaptor.getValue());
+  }
+
+  @Test
+  public void gesturesManagement_moveGesture_multiPointer_tracking() {
+    MoveGestureDetector moveGestureDetector = mock(MoveGestureDetector.class);
+    when(moveGestureDetector.getPointersCount()).thenReturn(2);
+    LocationCameraController camera = buildCamera(moveGestureDetector);
+    LocationComponentOptions options = mock(LocationComponentOptions.class);
+    when(options.trackingGesturesManagement()).thenReturn(true);
+    float initial = 100;
+    float multiFinger = 200;
+    RectF multiFingerArea = mock(RectF.class);
+    when(options.trackingInitialMoveThreshold()).thenReturn(initial);
+    when(options.trackingMultiFingerMoveThreshold()).thenReturn(multiFinger);
+    when(options.trackingMultiFingerProtectedMoveArea()).thenReturn(multiFingerArea);
+    camera.initializeOptions(options);
+
+    camera.setCameraMode(TRACKING);
+    camera.onMoveListener.onMoveBegin(moveGestureDetector);
+
+    verify(moveGestureDetector, atMost(1)).setMoveThreshold(multiFinger);
+    verify(moveGestureDetector, atMost(1)).setMoveThresholdRect(multiFingerArea);
+  }
+
+  @Test
+  public void gesturesManagement_moveGesture_multiPointer_tracking_duplicateCall() {
+    MoveGestureDetector moveGestureDetector = mock(MoveGestureDetector.class);
+    when(moveGestureDetector.getPointersCount()).thenReturn(2);
+    LocationCameraController camera = buildCamera(moveGestureDetector);
+    LocationComponentOptions options = mock(LocationComponentOptions.class);
+    when(options.trackingGesturesManagement()).thenReturn(true);
+    float initial = 100;
+    float multiFinger = 200;
+    RectF multiFingerArea = mock(RectF.class);
+    when(options.trackingInitialMoveThreshold()).thenReturn(initial);
+    when(options.trackingMultiFingerMoveThreshold()).thenReturn(multiFinger);
+    when(options.trackingMultiFingerProtectedMoveArea()).thenReturn(multiFingerArea);
+    camera.initializeOptions(options);
+
+    camera.setCameraMode(TRACKING);
+    camera.onMoveListener.onMoveBegin(moveGestureDetector);
+    when(moveGestureDetector.getMoveThreshold()).thenReturn(multiFinger);
+    when(moveGestureDetector.getMoveThresholdRect()).thenReturn(multiFingerArea);
+    camera.onMoveListener.onMoveBegin(moveGestureDetector);
+
+    verify(moveGestureDetector, atMost(1)).setMoveThreshold(multiFinger);
+    verify(moveGestureDetector, atMost(1)).setMoveThresholdRect(multiFingerArea);
+  }
+
+  @Test
+  public void gesturesManagement_moveGesture_multiPointer_tracking_thresholdMet() {
+    MoveGestureDetector moveGestureDetector = mock(MoveGestureDetector.class);
+    when(moveGestureDetector.getPointersCount()).thenReturn(2);
+    LocationCameraController camera = buildCamera(moveGestureDetector);
+    LocationComponentOptions options = mock(LocationComponentOptions.class);
+    when(options.trackingGesturesManagement()).thenReturn(true);
+    float initial = 100;
+    float multiFinger = 200;
+    RectF multiFingerArea = mock(RectF.class);
+    when(options.trackingInitialMoveThreshold()).thenReturn(initial);
+    when(options.trackingMultiFingerMoveThreshold()).thenReturn(multiFinger);
+    when(options.trackingMultiFingerProtectedMoveArea()).thenReturn(multiFingerArea);
+    camera.initializeOptions(options);
+
+    // verify the number of detector interruptions
+    camera.setCameraMode(TRACKING);
+    camera.onMoveListener.onMoveBegin(moveGestureDetector);
+    when(moveGestureDetector.getMoveThreshold()).thenReturn(initial);
+    when(moveGestureDetector.getMoveThreshold()).thenReturn(multiFinger);
+    when(moveGestureDetector.getMoveThresholdRect()).thenReturn(multiFingerArea);
+    camera.onMoveListener.onMove(moveGestureDetector);
+    verify(moveGestureDetector, times(1)).interrupt();
+    camera.onMoveListener.onMoveEnd(moveGestureDetector);
+    camera.onMoveListener.onMoveBegin(moveGestureDetector);
+    camera.onMoveListener.onMove(moveGestureDetector);
+    verify(moveGestureDetector, times(2)).interrupt();
+    camera.onMoveListener.onMoveEnd(moveGestureDetector);
+    camera.onMoveListener.onMoveBegin(moveGestureDetector);
+    camera.onMoveListener.onMove(moveGestureDetector);
+    camera.onMoveListener.onMoveEnd(moveGestureDetector);
+
+    verify(moveGestureDetector, times(2)).interrupt();
+
+    // verify that threshold are reset
+    ArgumentCaptor<Float> moveThresholdCaptor = ArgumentCaptor.forClass(Float.class);
+    verify(moveGestureDetector, atLeastOnce()).setMoveThreshold(moveThresholdCaptor.capture());
+    org.junit.Assert.assertEquals(Float.valueOf(0), moveThresholdCaptor.getValue());
+
+    ArgumentCaptor<RectF> areaCaptor = ArgumentCaptor.forClass(RectF.class);
+    verify(moveGestureDetector, atLeastOnce()).setMoveThresholdRect(areaCaptor.capture());
+    org.junit.Assert.assertNull(areaCaptor.getValue());
+  }
+
+  @Test
   public void onMove_notCancellingTransitionWhileNone() {
     MapboxMap mapboxMap = mock(MapboxMap.class);
     when(mapboxMap.getUiSettings()).thenReturn(mock(UiSettings.class));
@@ -638,6 +842,36 @@ public class LocationCameraControllerTest {
 
     camera.setCameraMode(TRACKING_GPS_NORTH, location, TRANSITION_ANIMATION_DURATION_MS, null, null, null, listener);
     verify(listener, times(1)).onLocationCameraTransitionFinished(TRACKING_GPS_NORTH);
+    verify(transform, times(1))
+      .animateCamera(eq(mapboxMap), any(CameraUpdate.class), any(Integer.class),
+        any(MapboxMap.CancelableCallback.class));
+  }
+
+  @Test
+  public void transition_duplicateMode() {
+    MapboxMap mapboxMap = mock(MapboxMap.class);
+    Transform transform = mock(Transform.class);
+    when(mapboxMap.getCameraPosition()).thenReturn(CameraPosition.DEFAULT);
+    Projection projection = mock(Projection.class);
+    when(mapboxMap.getProjection()).thenReturn(projection);
+    when(projection.getMetersPerPixelAtLatitude(any(Double.class))).thenReturn(Double.valueOf(1000));
+    LocationCameraController camera = buildCamera(mapboxMap, transform);
+    camera.initializeOptions(mock(LocationComponentOptions.class));
+    final OnLocationCameraTransitionListener listener = mock(OnLocationCameraTransitionListener.class);
+    Location location = mock(Location.class);
+
+    camera.setCameraMode(TRACKING, location, TRANSITION_ANIMATION_DURATION_MS, null, null, null, listener);
+
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
+        listener.onLocationCameraTransitionFinished(TRACKING);
+        return null;
+      }
+    }).when(transform).animateCamera(eq(mapboxMap), any(CameraUpdate.class), any(Integer.class),
+      any(MapboxMap.CancelableCallback.class));
+    camera.setCameraMode(TRACKING, location, TRANSITION_ANIMATION_DURATION_MS, null, null, null, listener);
+    verify(listener, times(1)).onLocationCameraTransitionFinished(TRACKING);
     verify(transform, times(1))
       .animateCamera(eq(mapboxMap), any(CameraUpdate.class), any(Integer.class),
         any(MapboxMap.CancelableCallback.class));
@@ -908,6 +1142,32 @@ public class LocationCameraControllerTest {
       .animateCamera(eq(mapboxMap), eq(cameraUpdate), eq(1200), any(MapboxMap.CancelableCallback.class));
   }
 
+  @Test
+  public void transition_customAnimationDisabled() {
+    MapboxMap mapboxMap = mock(MapboxMap.class);
+    Transform transform = mock(Transform.class);
+    when(mapboxMap.getCameraPosition()).thenReturn(CameraPosition.DEFAULT);
+    Projection projection = mock(Projection.class);
+    when(mapboxMap.getProjection()).thenReturn(projection);
+    when(projection.getMetersPerPixelAtLatitude(any(Double.class))).thenReturn(Double.valueOf(1000));
+    LocationCameraController camera = buildCamera(mapboxMap, transform);
+    camera.initializeOptions(mock(LocationComponentOptions.class));
+    Location location = mock(Location.class);
+    CameraUpdate cameraUpdate = CameraUpdateFactory.newCameraPosition(
+      new CameraPosition.Builder()
+        .target(new LatLng(location))
+        .zoom(14.0)
+        .bearing(13.0)
+        .tilt(45.0)
+        .build()
+    );
+
+    camera.setEnabled(false);
+    camera.setCameraMode(TRACKING, location, 1200, 14.0, 13.0, 45.0, null);
+    verify(transform, times(0))
+      .animateCamera(eq(mapboxMap), eq(cameraUpdate), eq(1200), any(MapboxMap.CancelableCallback.class));
+  }
+
   private LocationCameraController buildCamera(OnCameraTrackingChangedListener onCameraTrackingChangedListener) {
     MapboxMap mapboxMap = mock(MapboxMap.class);
     when(mapboxMap.getUiSettings()).thenReturn(mock(UiSettings.class));
@@ -972,8 +1232,11 @@ public class LocationCameraControllerTest {
     OnCameraMoveInvalidateListener onCameraMoveInvalidateListener = mock(OnCameraMoveInvalidateListener.class);
     AndroidGesturesManager initialGesturesManager = mock(AndroidGesturesManager.class);
     AndroidGesturesManager internalGesturesManager = mock(AndroidGesturesManager.class);
-    return new LocationCameraController(mapboxMap, transform, moveGestureDetector,
-      onCameraTrackingChangedListener, onCameraMoveInvalidateListener, initialGesturesManager, internalGesturesManager);
+    LocationCameraController locationCameraController = new LocationCameraController(
+      mapboxMap, transform, moveGestureDetector, onCameraTrackingChangedListener,
+      onCameraMoveInvalidateListener, initialGesturesManager, internalGesturesManager);
+    locationCameraController.setEnabled(true);
+    return locationCameraController;
   }
 
   private LocationCameraController buildCamera(MapboxMap mapboxMap, AndroidGesturesManager initialGesturesManager,

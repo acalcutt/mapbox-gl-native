@@ -2,10 +2,11 @@ package com.mapbox.mapboxsdk.testapp.activity.annotation;
 
 import android.graphics.PointF;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.geometry.LatLng;
@@ -54,7 +55,7 @@ public class PressForMarkerActivity extends AppCompatActivity {
         return false;
       });
 
-      mapboxMap.setStyle(Style.MAPBOX_STREETS);
+      mapboxMap.setStyle(Style.getPredefinedStyle("Streets"));
 
       if (savedInstanceState != null) {
         markerList = savedInstanceState.getParcelableArrayList(STATE_MARKER_LIST);

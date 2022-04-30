@@ -24,15 +24,11 @@ static RendererObserver& nullObserver() {
     return observer;
 }
 
-Renderer::Impl::Impl(gfx::RendererBackend& backend_,
-                     float pixelRatio_,
-                     optional<std::string> localFontFamily_)
-    : orchestrator(!backend_.contextIsShared(), std::move(localFontFamily_))
-    , backend(backend_)
-    , observer(&nullObserver())
-    , pixelRatio(pixelRatio_) {
-
-}
+Renderer::Impl::Impl(gfx::RendererBackend& backend_, float pixelRatio_, const optional<std::string>& localFontFamily_)
+    : orchestrator(!backend_.contextIsShared(), localFontFamily_),
+      backend(backend_),
+      observer(&nullObserver()),
+      pixelRatio(pixelRatio_) {}
 
 Renderer::Impl::~Impl() {
     assert(gfx::BackendScope::exists());
@@ -112,8 +108,8 @@ void Renderer::Impl::render(const RenderTree& renderTree) {
         }
         parameters.staticData.depthRenderbuffer->setShouldClear(true);
 
-        uint32_t i = static_cast<uint32_t>(layerRenderItems.size()) - 1;
-        for (auto it = layerRenderItems.begin(); it != layerRenderItems.end(); ++it, --i) {
+        int32_t i = static_cast<int32_t>(layerRenderItems.size()) - 1;
+        for (auto it = layerRenderItems.begin(); it != layerRenderItems.end() && i >= 0; ++it, --i) {
             parameters.currentLayer = i;
             const RenderItem& renderItem = it->get();
             if (renderItem.hasRenderPass(parameters.pass)) {
@@ -163,8 +159,8 @@ void Renderer::Impl::render(const RenderTree& renderTree) {
         parameters.pass = RenderPass::Translucent;
         const auto debugGroup(parameters.renderPass->createDebugGroup("translucent"));
 
-        uint32_t i = static_cast<uint32_t>(layerRenderItems.size()) - 1;
-        for (auto it = layerRenderItems.begin(); it != layerRenderItems.end(); ++it, --i) {
+        int32_t i = static_cast<int32_t>(layerRenderItems.size()) - 1;
+        for (auto it = layerRenderItems.begin(); it != layerRenderItems.end() && i >= 0; ++it, --i) {
             parameters.currentLayer = i;
             const RenderItem& renderItem = it->get();
             if (renderItem.hasRenderPass(parameters.pass)) {
@@ -183,12 +179,12 @@ void Renderer::Impl::render(const RenderTree& renderTree) {
         // This guarantees that we have at least one function per tile called.
         // When only rendering layers via the stylesheet, it's possible that we don't
         // ever visit a tile during rendering.
-        for (const RenderItem& renderItem : sourceRenderItems) {           
+        for (const RenderItem& renderItem : sourceRenderItems) {
             renderItem.render(parameters);
         }
     }
 
-#if not defined(NDEBUG)
+#if !defined(NDEBUG)
     if (parameters.debugOptions & MapDebugOptions::StencilClip) {
         // Render tile clip boundaries, using stencil buffer to calculate fill color.
         parameters.context.visualizeStencilBuffer();

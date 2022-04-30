@@ -1,9 +1,10 @@
 #pragma once
 
+#include <mbgl/style/expression/value.hpp>
+#include <mbgl/style/position.hpp>
+#include <mbgl/style/rotation.hpp>
 #include <mbgl/util/color.hpp>
 #include <mbgl/util/range.hpp>
-#include <mbgl/style/position.hpp>
-#include <mbgl/style/expression/value.hpp>
 
 #include <array>
 #include <vector>
@@ -24,11 +25,26 @@ T interpolate(const T& a, const T& b, const double t) {
     return Interpolator<T>()(a, b, t);
 }
 
+template <typename T>
+T interpolate(const T& a, const T& b, const float t) {
+    return Interpolator<T>()(a, b, t);
+}
 
 template <class T, class Enabled>
 struct Interpolator {
     T operator()(const T& a, const T& b, const double t) const {
         return a * (1.0 - t) + b * t;
+    }
+};
+
+template <>
+struct Interpolator<float> {
+    float operator()(const float& a, const float& b, const float t) const {
+        return a * (1.0f - t) + b * t;
+    }
+
+    float operator()(const float& a, const float& b, const double t) const {
+        return static_cast<float>(a * (1.0 - t) + b * t);
     }
 };
 
@@ -48,6 +64,22 @@ public:
     }
 };
 
+template <std::size_t N>
+struct Interpolator<std::array<float, N>> {
+private:
+    using Array = std::array<float, N>;
+
+    template <std::size_t... I>
+    Array operator()(const Array& a, const Array& b, const float t, std::index_sequence<I...>) {
+        return {{ interpolate(a[I], b[I], t)... }};
+    }
+
+public:
+    Array operator()(const Array& a, const Array& b, const float t) {
+        return operator()(a, b, t, std::make_index_sequence<N>());
+    }
+};
+
 
 // In order to accept Array<Number, N> as an output value for Curve
 // expressions, we need to have an interpolatable std::vector type.
@@ -63,7 +95,7 @@ struct Interpolator<std::vector<style::expression::Value>> {
                                   const std::vector<style::expression::Value>& b,
                                   const double t) const {
         assert(a.size() == b.size());
-        if (a.size() == 0) return {};
+        if (a.empty()) return {};
         std::vector<style::expression::Value> result;
         for (std::size_t i = 0; i < a.size(); i++) {
             assert(a[i].template is<double>());
@@ -81,7 +113,7 @@ struct Interpolator<std::vector<style::expression::Value>> {
 template <>
 struct Interpolator<style::Position> {
 public:
-    style::Position operator()(const style::Position& a, const style::Position& b, const double t) {
+    style::Position operator()(const style::Position& a, const style::Position& b, const float t) {
         auto pos = style::Position();
         auto interpolated = interpolate(a.getCartesian(), b.getCartesian(), t);
         pos.setCartesian(interpolated);
@@ -92,6 +124,15 @@ public:
 template <>
 struct Interpolator<Color> {
 public:
+    Color operator()(const Color& a, const Color& b, const float t) {
+        return {
+            interpolate(a.r, b.r, t),
+            interpolate(a.g, b.g, t),
+            interpolate(a.b, b.b, t),
+            interpolate(a.a, b.a, t)
+        };
+    }
+
     Color operator()(const Color& a, const Color& b, const double t) {
         return {
             interpolate(a.r, b.r, t),
@@ -99,6 +140,27 @@ public:
             interpolate(a.b, b.b, t),
             interpolate(a.a, b.a, t)
         };
+    }
+};
+
+template <>
+struct Interpolator<style::Rotation> {
+public:
+    style::Rotation operator()(const style::Rotation& a, const style::Rotation& b, const double t) {
+        assert(a.period() == b.period());
+        auto period = a.period();
+        auto aAngle = std::fmod(a.getAngle(), period);
+        auto bAngle = std::fmod(b.getAngle(), period);
+
+        if (aAngle - bAngle > period * 0.5) {
+            return {std::fmod(aAngle * (1.0 - t) + (bAngle + period) * t, period)};
+        }
+
+        if (aAngle - bAngle < period * -0.5) {
+            return {std::fmod((aAngle + period) * (1.0 - t) + bAngle * t, period)};
+        }
+
+        return {aAngle * (1.0 - t) + bAngle * t};
     }
 };
 

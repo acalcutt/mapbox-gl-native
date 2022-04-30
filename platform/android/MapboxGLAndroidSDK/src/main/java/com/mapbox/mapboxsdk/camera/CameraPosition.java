@@ -3,11 +3,12 @@ package com.mapbox.mapboxsdk.camera;
 import android.content.res.TypedArray;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.FloatRange;
-import android.support.annotation.Keep;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.Size;
+
+import androidx.annotation.FloatRange;
+import androidx.annotation.Keep;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.Size;
 
 import com.mapbox.mapboxsdk.R;
 import com.mapbox.mapboxsdk.constants.MapboxConstants;
@@ -30,8 +31,16 @@ public final class CameraPosition implements Parcelable {
         LatLng target = in.readParcelable(LatLng.class.getClassLoader());
         double tilt = in.readDouble();
         double zoom = in.readDouble();
-        double[] padding = new double[4];
-        in.readDoubleArray(padding);
+
+        double[] padding = null;
+        int paddingSize = in.readInt();
+        if (paddingSize > 0) {
+          padding = new double[paddingSize];
+          for (int i = 0; i < paddingSize; i++) {
+            padding[i] = in.readDouble();
+          }
+        }
+
         return new CameraPosition(target, zoom, tilt, bearing, padding);
       }
 
@@ -139,7 +148,16 @@ public final class CameraPosition implements Parcelable {
     out.writeParcelable(target, flags);
     out.writeDouble(tilt);
     out.writeDouble(zoom);
-    out.writeDoubleArray(padding);
+
+    if (padding != null) {
+      int length = padding.length;
+      out.writeInt(length);
+      for (double v : padding) {
+        out.writeDouble(v);
+      }
+    } else {
+      out.writeInt(-1);
+    }
   }
 
   /**

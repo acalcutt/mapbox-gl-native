@@ -7,9 +7,9 @@ const spec = require('../../../scripts/style-spec');
 const _ = require('lodash');
 
 // FIXME: https://github.com/mapbox/mapbox-gl-native/issues/15008
-delete spec.layout_circle["circle-sort-key"]
-delete spec.layout_line["line-sort-key"]
-delete spec.layout_fill["fill-sort-key"]
+//delete spec.layout_circle["circle-sort-key"]
+//delete spec.layout_line["line-sort-key"]
+//delete spec.layout_fill["fill-sort-key"]
 
 require('../../../scripts/style-code');
 
@@ -26,7 +26,7 @@ const lightProperties = Object.keys(spec[`light`]).reduce((memo, name) => {
 // Collect layer types from spec
 var layers = Object.keys(spec.layer.type.values).map((type) => {
   const layoutProperties = Object.keys(spec[`layout_${type}`]).reduce((memo, name) => {
-    if (name !== 'visibility') {
+    if (name !== 'visibility' && type !== 'location-indicator') {
       spec[`layout_${type}`][name].name = name;
       memo.push(spec[`layout_${type}`][name]);
     }
@@ -34,8 +34,26 @@ var layers = Object.keys(spec.layer.type.values).map((type) => {
   }, []);
 
   const paintProperties = Object.keys(spec[`paint_${type}`]).reduce((memo, name) => {
-    spec[`paint_${type}`][name].name = name;
-    memo.push(spec[`paint_${type}`][name]);
+    if (type !== 'location-indicator') {
+      spec[`paint_${type}`][name].name = name;
+      memo.push(spec[`paint_${type}`][name]);
+    }
+    return memo;
+  }, []);
+
+  const locationLayoutProperties = Object.keys(spec[`layout_${type}`]).reduce((memo, name) => {
+    if (name !== 'visibility' && type === 'location-indicator') {
+      spec[`layout_${type}`][name].name = name;
+      memo.push(spec[`layout_${type}`][name]);
+    }
+    return memo;
+  }, []);
+
+  const locationPaintProperties = Object.keys(spec[`paint_${type}`]).reduce((memo, name) => {
+    if (type === 'location-indicator') {
+      spec[`paint_${type}`][name].name = name;
+      memo.push(spec[`paint_${type}`][name]);
+    }
     return memo;
   }, []);
 
@@ -44,7 +62,9 @@ var layers = Object.keys(spec.layer.type.values).map((type) => {
     doc: spec.layer.type.values[type].doc,
     layoutProperties: layoutProperties,
     paintProperties: paintProperties,
-    properties: layoutProperties.concat(paintProperties)
+    locationLayoutProperties: locationLayoutProperties,
+    locationPaintProperties: locationPaintProperties,
+    properties: layoutProperties.concat(paintProperties).concat(locationLayoutProperties).concat(locationPaintProperties)
   };
 });
 
@@ -57,6 +77,8 @@ const uniqueArrayEnum = (prop, enums) => {
 
 const layoutProperties = _(layers).map('layoutProperties').flatten().value();
 const paintProperties = _(layers).map('paintProperties').flatten().value();
+const locationLayoutProperties = _(layers).map('locationLayoutProperties').flatten().value();
+const locationPaintProperties = _(layers).map('locationPaintProperties').flatten().value();
 const allProperties = _(layoutProperties).union(paintProperties).union(lightProperties).value();
 let allEnumProperties = _(allProperties).filter({'type': 'enum'}).value();
 const uniqueArrayEnumProperties = _(allProperties).filter({'type': 'array'}).filter(prop => uniqueArrayEnum(prop, allEnumProperties)).value();
@@ -68,17 +90,23 @@ global.propertyType = function propertyType(property) {
       case 'boolean':
         return 'Boolean';
       case 'number':
-        return 'Float';
+        if (/bearing$/.test(property.name) &&
+            property.period == 360 &&
+            property.units =='degrees') {
+          return 'Double';
+        }
+        return /location$/.test(property.name) ? 'Double' : 'Float';
       case 'formatted':
         return 'Formatted';
       case 'string':
+      case 'resolvedImage':
         return 'String';
       case 'enum':
         return 'String';
       case 'color':
         return 'String';
       case 'array':
-        return `${propertyType({type:property.value})}[]`;
+        return `${propertyType({type:property.value, name: property.name})}[]`;
       default:
         throw new Error(`unknown type for ${property.name}`);
   }
@@ -93,6 +121,7 @@ global.propertyJavaType = function propertyType(property) {
        case 'formatted':
          return 'Formatted';
        case 'string':
+       case 'resolvedImage':
          return 'String';
        case 'enum':
          return 'String';
@@ -141,6 +170,7 @@ global.propertyNativeType = function (property) {
     return 'float';
   case 'formatted':
   case 'string':
+  case 'resolvedImage': // TODO: replace once we implement image expressions
     return 'std::string';
   case 'enum':
     if(property['light-property']){
@@ -176,7 +206,10 @@ global.defaultExpressionJava = function(property) {
         return 'number';
       case 'formatted':
         return 'format';
+      case 'resolvedImage':
+        return "image";
       case 'string':
+      case 'image':
         return "string";
       case 'enum':
         return "string";
@@ -199,10 +232,16 @@ global.defaultValueJava = function(property) {
       case 'boolean':
         return 'true';
       case 'number':
+        if (/bearing$/.test(property.name) &&
+            property.period == 360 &&
+            property.units =='degrees') {
+          return '0.3';
+        }
         return '0.3f';
       case 'formatted':
         return 'new Formatted(new FormattedSection("default"))'
       case 'string':
+      case 'resolvedImage':
         return '"' + property['default'] + '"';
       case 'enum':
         return snakeCaseUpper(property.name) + "_" + snakeCaseUpper(Object.keys(property.values)[0]);
@@ -218,14 +257,16 @@ global.defaultValueJava = function(property) {
                     return 'new String[0]';
                 }
               case 'number':
-                var result ='new Float[] {';
+                var isDouble = /location$/.test(property.name)
+                console.log(isDouble)
+                var result = 'new ' + (isDouble ? 'Double' : 'Float') + '[] {';
                 for (var i = 0; i < property.length; i++) {
-                    result += "0f";
+                    result += isDouble ? '0.0' : '0f';
                     if (i +1 != property.length) {
-                        result += ", ";
+                        result += ', ';
                     }
                 }
-                return result + "}";
+                return result + '}';
              }
       default: throw new Error(`unknown type for ${property.name}`)
       }
@@ -335,6 +376,7 @@ global.evaluatedType = function (property) {
     return 'float';
   case 'formatted':
   case 'string':
+  case 'image':
     return 'std::string';
   case 'enum':
     return (isLightProperty(property) ? 'Light' : '') + `${camelize(property.name)}Type`;
@@ -361,34 +403,56 @@ global.supportsPropertyFunction = function (property) {
 // Template processing //
 
 // Java + JNI Light (Peer model)
-const lightJava = ejs.compile(fs.readFileSync('platform/android/MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/light/light.java.ejs', 'utf8'), {strict: true});
-const lightJavaUnitTests = ejs.compile(fs.readFileSync('platform/android/MapboxGLAndroidSDKTestApp/src/androidTest/java/com/mapbox/mapboxsdk/testapp/style/light.junit.ejs', 'utf8'), {strict: true});
-writeIfModified(`platform/android/MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/light/Light.java`, lightJava({properties: lightProperties}));
-writeIfModified(`platform/android/MapboxGLAndroidSDKTestApp/src/androidTest/java/com/mapbox/mapboxsdk/testapp/style/LightTest.java`, lightJavaUnitTests({properties: lightProperties}));
+const lightJava = ejs.compile(fs.readFileSync('MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/light/light.java.ejs', 'utf8'), {strict: true});
+const lightJavaUnitTests = ejs.compile(fs.readFileSync('MapboxGLAndroidSDKTestApp/src/androidTest/java/com/mapbox/mapboxsdk/testapp/style/light.junit.ejs', 'utf8'), {strict: true});
+writeIfModified(`MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/light/Light.java`, lightJava({properties: lightProperties}));
+writeIfModified(`MapboxGLAndroidSDKTestApp/src/androidTest/java/com/mapbox/mapboxsdk/testapp/style/LightTest.java`, lightJavaUnitTests({properties: lightProperties}));
 
-// Java + JNI Layers (Peer model)
-const layerHpp = ejs.compile(fs.readFileSync('platform/android/src/style/layers/layer.hpp.ejs', 'utf8'), {strict: true});
-const layerCpp = ejs.compile(fs.readFileSync('platform/android/src/style/layers/layer.cpp.ejs', 'utf8'), {strict: true});
-const layerJava = ejs.compile(fs.readFileSync('platform/android/MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/layers/layer.java.ejs', 'utf8'), {strict: true});
-const layerJavaUnitTests = ejs.compile(fs.readFileSync('platform/android/MapboxGLAndroidSDKTestApp/src/androidTest/java/com/mapbox/mapboxsdk/testapp/style/layer.junit.ejs', 'utf8'), {strict: true});
+// Java
+const layerJava = ejs.compile(fs.readFileSync('MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/layers/layer.java.ejs', 'utf8'), {strict: true});
+const layerJavaUnitTests = ejs.compile(fs.readFileSync('MapboxGLAndroidSDKTestApp/src/androidTest/java/com/mapbox/mapboxsdk/testapp/style/layer.junit.ejs', 'utf8'), {strict: true});
 
 for (const layer of layers) {
-  writeIfModified(`platform/android/src/style/layers/${layer.type.replace('-', '_')}_layer.hpp`, layerHpp(layer));
-  writeIfModified(`platform/android/src/style/layers/${layer.type.replace('-', '_')}_layer.cpp`, layerCpp(layer));
-  writeIfModified(`platform/android/MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/layers/${camelize(layer.type)}Layer.java`, layerJava(layer));
-  writeIfModified(`platform/android/MapboxGLAndroidSDKTestApp/src/androidTest/java/com/mapbox/mapboxsdk/testapp/style/${camelize(layer.type)}LayerTest.java`, layerJavaUnitTests(layer));
+  var srcDir = 'MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/layers/'
+  var testDir = 'MapboxGLAndroidSDKTestApp/src/androidTest/java/com/mapbox/mapboxsdk/testapp/style/'
+  if (layer.type === 'location-indicator') {
+    srcDir = 'MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/location/'
+    testDir = 'MapboxGLAndroidSDKTestApp/src/androidTest/java/com/mapbox/mapboxsdk/location/'
+  }
+
+  writeIfModified(srcDir + `${camelize(layer.type)}Layer.java`, layerJava(layer));
+  writeIfModified(testDir + `${camelize(layer.type)}LayerTest.java`, layerJavaUnitTests(layer));
+}
+
+// Jni
+const layerHpp = ejs.compile(fs.readFileSync('MapboxGLAndroidSDK/src/cpp/style/layers/layer.hpp.ejs', 'utf8'), {strict: true});
+const layerCpp = ejs.compile(fs.readFileSync('MapboxGLAndroidSDK/src/cpp/style/layers/layer.cpp.ejs', 'utf8'), {strict: true});
+
+for (const layer of layers) {
+  const layerFileName = layer.type.replace('-', '_');
+
+  writeIfModified(`MapboxGLAndroidSDK/src/cpp/style/layers/${layerFileName}_layer.hpp`, layerHpp(layer));
+  writeIfModified(`MapboxGLAndroidSDK/src/cpp/style/layers/${layerFileName}_layer.cpp`, layerCpp(layer));
 }
 
 // Java PropertyFactory
-const propertiesTemplate = ejs.compile(fs.readFileSync('platform/android/MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/layers/property_factory.java.ejs', 'utf8'), {strict: true});
+const propertyFactoryTemplate = ejs.compile(fs.readFileSync('MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/layers/property_factory.java.ejs', 'utf8'), {strict: true});
+
+var propertyFactorySrcDir = 'MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/layers/PropertyFactory.java'
 writeIfModified(
-    `platform/android/MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/layers/PropertyFactory.java`,
-    propertiesTemplate({layoutProperties: layoutProperties, paintProperties: paintProperties})
+    propertyFactorySrcDir,
+    propertyFactoryTemplate({layoutProperties: layoutProperties, paintProperties: paintProperties, locationIndicator: false})
+);
+
+var locationPropertyFactorySrcDir = 'MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/location/LocationPropertyFactory.java'
+writeIfModified(
+    locationPropertyFactorySrcDir,
+    propertyFactoryTemplate({layoutProperties: locationLayoutProperties, paintProperties: locationPaintProperties, locationIndicator: true})
 );
 
 // Java Property
-const enumPropertyJavaTemplate = ejs.compile(fs.readFileSync('platform/android/MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/layers/property.java.ejs', 'utf8'), {strict: true});
+const enumPropertyJavaTemplate = ejs.compile(fs.readFileSync('MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/layers/property.java.ejs', 'utf8'), {strict: true});
 writeIfModified(
-    `platform/android/MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/layers/Property.java`,
+    `MapboxGLAndroidSDK/src/main/java/com/mapbox/mapboxsdk/style/layers/Property.java`,
     enumPropertyJavaTemplate({properties: enumProperties})
 );

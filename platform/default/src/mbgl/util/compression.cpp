@@ -1,6 +1,6 @@
 #include <mbgl/util/compression.hpp>
 
-#if defined(__QT__) && defined(_WIN32) && !defined(__GNUC__)
+#if defined(__QT__) && (defined(_WIN32) || defined(__EMSCRIPTEN__))
 #include <QtZlib/zlib.h>
 #else
 #include <zlib.h>
@@ -10,8 +10,14 @@
 #include <cstring>
 #include <stdexcept>
 
+#if defined(__GNUC__)
+#define MBGL_UNUSED __attribute__((unused))
+#else
+#define MBGL_UNUSED
+#endif
+
 // Check zlib library version.
-const static bool zlibVersionCheck __attribute__((unused)) = []() {
+const static bool zlibVersionCheck MBGL_UNUSED = []() {
     const char *const version = zlibVersion();
     if (version[0] != ZLIB_VERSION[0]) {
         char message[96];
@@ -31,16 +37,16 @@ namespace util {
 // cause a link error.
 #undef compress
 
-std::string compress(const std::string &raw) {
+std::string compress(const std::string &raw, int windowBits) {
     z_stream deflate_stream;
     memset(&deflate_stream, 0, sizeof(deflate_stream));
 
     // TODO: reuse z_streams
-    if (deflateInit(&deflate_stream, Z_DEFAULT_COMPRESSION) != Z_OK) {
+    if (deflateInit2(&deflate_stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, windowBits, 8, Z_DEFAULT_STRATEGY) != Z_OK) {
         throw std::runtime_error("failed to initialize deflate");
     }
 
-    deflate_stream.next_in = (Bytef *)raw.data();
+    deflate_stream.next_in = reinterpret_cast<Bytef *>(const_cast<char *>(raw.data()));
     deflate_stream.avail_in = uInt(raw.size());
 
     std::string result;
@@ -66,16 +72,16 @@ std::string compress(const std::string &raw) {
     return result;
 }
 
-std::string decompress(const std::string &raw) {
+std::string decompress(const std::string &raw, int windowBits) {
     z_stream inflate_stream;
     memset(&inflate_stream, 0, sizeof(inflate_stream));
 
     // TODO: reuse z_streams
-    if (inflateInit(&inflate_stream) != Z_OK) {
+    if (inflateInit2(&inflate_stream, windowBits) != Z_OK) {
         throw std::runtime_error("failed to initialize inflate");
     }
 
-    inflate_stream.next_in = (Bytef *)raw.data();
+    inflate_stream.next_in = reinterpret_cast<Bytef *>(const_cast<char *>(raw.data()));
     inflate_stream.avail_in = uInt(raw.size());
 
     std::string result;

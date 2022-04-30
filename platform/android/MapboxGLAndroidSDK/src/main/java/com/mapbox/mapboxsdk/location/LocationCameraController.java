@@ -2,11 +2,13 @@ package com.mapbox.mapboxsdk.location;
 
 import android.content.Context;
 import android.graphics.PointF;
+import android.graphics.RectF;
 import android.location.Location;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
 import android.view.MotionEvent;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.mapbox.android.gestures.AndroidGesturesManager;
 import com.mapbox.android.gestures.MoveGestureDetector;
@@ -33,7 +35,6 @@ final class LocationCameraController {
   private final Transform transform;
   private final OnCameraTrackingChangedListener internalCameraTrackingChangedListener;
   private LocationComponentOptions options;
-  private boolean adjustFocalPoint;
 
   private final MoveGestureDetector moveGestureDetector;
   private final OnCameraMoveInvalidateListener onCameraMoveInvalidateListener;
@@ -42,6 +43,8 @@ final class LocationCameraController {
   private final AndroidGesturesManager internalGesturesManager;
 
   private boolean isTransitioning;
+  private LatLng lastLocation;
+  private boolean isEnabled;
 
   LocationCameraController(
     Context context,
@@ -59,7 +62,7 @@ final class LocationCameraController {
     mapboxMap.addOnRotateListener(onRotateListener);
     mapboxMap.addOnFlingListener(onFlingListener);
     mapboxMap.addOnMoveListener(onMoveListener);
-
+    mapboxMap.addOnCameraMoveListener(onCameraMoveListener);
     this.internalCameraTrackingChangedListener = internalCameraTrackingChangedListener;
     this.onCameraMoveInvalidateListener = onCameraMoveInvalidateListener;
     initializeOptions(options);
@@ -74,6 +77,7 @@ final class LocationCameraController {
                            AndroidGesturesManager initialGesturesManager,
                            AndroidGesturesManager internalGesturesManager) {
     this.mapboxMap = mapboxMap;
+    mapboxMap.addOnCameraMoveListener(onCameraMoveListener);
     this.transform = transform;
     this.moveGestureDetector = moveGestureDetector;
     this.internalCameraTrackingChangedListener = internalCameraTrackingChangedListener;
@@ -103,6 +107,9 @@ final class LocationCameraController {
                      @Nullable Double zoom, @Nullable Double bearing, @Nullable Double tilt,
                      @Nullable OnLocationCameraTransitionListener internalTransitionListener) {
     if (this.cameraMode == cameraMode) {
+      if (internalTransitionListener != null) {
+        internalTransitionListener.onLocationCameraTransitionFinished(cameraMode);
+      }
       return;
     }
 
@@ -127,7 +134,7 @@ final class LocationCameraController {
                                            long transitionDuration,
                                            Double zoom, Double bearing, Double tilt,
                                            final OnLocationCameraTransitionListener internalTransitionListener) {
-    if (!wasTracking && isLocationTracking() && lastLocation != null) {
+    if (!wasTracking && isLocationTracking() && lastLocation != null && isEnabled) {
       isTransitioning = true;
       LatLng target = new LatLng(lastLocation);
 
@@ -202,15 +209,9 @@ final class LocationCameraController {
     if (isTransitioning) {
       return;
     }
-
+    lastLocation = latLng;
     transform.moveCamera(mapboxMap, CameraUpdateFactory.newLatLng(latLng), null);
     onCameraMoveInvalidateListener.onInvalidateCameraMove();
-
-    if (adjustFocalPoint) {
-      PointF focalPoint = mapboxMap.getProjection().toScreenLocation(latLng);
-      mapboxMap.getUiSettings().setFocalPoint(focalPoint);
-      adjustFocalPoint = false;
-    }
   }
 
   private void setZoom(float zoom) {
@@ -307,10 +308,10 @@ final class LocationCameraController {
   private void adjustGesturesThresholds() {
     if (options.trackingGesturesManagement()) {
       if (isLocationTracking()) {
-        adjustFocalPoint = true;
         moveGestureDetector.setMoveThreshold(options.trackingInitialMoveThreshold());
       } else {
         moveGestureDetector.setMoveThreshold(0f);
+        moveGestureDetector.setMoveThresholdRect(null);
       }
     }
   }
@@ -318,6 +319,10 @@ final class LocationCameraController {
   boolean isConsumingCompass() {
     return cameraMode == CameraMode.TRACKING_COMPASS
       || cameraMode == CameraMode.NONE_COMPASS;
+  }
+
+  void setEnabled(boolean enabled) {
+    isEnabled = enabled;
   }
 
   private boolean isLocationTracking() {
@@ -349,6 +354,17 @@ final class LocationCameraController {
     }
   }
 
+  private MapboxMap.OnCameraMoveListener onCameraMoveListener = new MapboxMap.OnCameraMoveListener() {
+
+    @Override
+    public void onCameraMove() {
+      if (isLocationTracking() && lastLocation != null && options.trackingGesturesManagement()) {
+        PointF focalPoint = mapboxMap.getProjection().toScreenLocation(lastLocation);
+        mapboxMap.getUiSettings().setFocalPoint(focalPoint);
+      }
+    }
+  };
+
   @NonNull
   @VisibleForTesting
   MapboxMap.OnMoveListener onMoveListener = new MapboxMap.OnMoveListener() {
@@ -356,14 +372,40 @@ final class LocationCameraController {
 
     @Override
     public void onMoveBegin(@NonNull MoveGestureDetector detector) {
-      if (options.trackingGesturesManagement()
-        && detector.getPointersCount() > 1
-        && detector.getMoveThreshold() != options.trackingMultiFingerMoveThreshold()
-        && isLocationTracking()) {
-        detector.setMoveThreshold(options.trackingMultiFingerMoveThreshold());
-        interrupt = true;
+      if (options.trackingGesturesManagement() && isLocationTracking()) {
+        if (detector.getPointersCount() > 1) {
+          applyMultiFingerThresholdArea(detector);
+          applyMultiFingerMoveThreshold(detector);
+        } else {
+          applySingleFingerMoveThreshold(detector);
+        }
       } else {
         setCameraMode(CameraMode.NONE);
+      }
+    }
+
+    private void applyMultiFingerThresholdArea(@NonNull MoveGestureDetector detector) {
+      RectF currentRect = detector.getMoveThresholdRect();
+      if (currentRect != null && !currentRect.equals(options.trackingMultiFingerProtectedMoveArea())) {
+        detector.setMoveThresholdRect(options.trackingMultiFingerProtectedMoveArea());
+        interrupt = true;
+      } else if (currentRect == null && options.trackingMultiFingerProtectedMoveArea() != null) {
+        detector.setMoveThresholdRect(options.trackingMultiFingerProtectedMoveArea());
+        interrupt = true;
+      }
+    }
+
+    private void applyMultiFingerMoveThreshold(@NonNull MoveGestureDetector detector) {
+      if (detector.getMoveThreshold() != options.trackingMultiFingerMoveThreshold()) {
+        detector.setMoveThreshold(options.trackingMultiFingerMoveThreshold());
+        interrupt = true;
+      }
+    }
+
+    private void applySingleFingerMoveThreshold(@NonNull MoveGestureDetector detector) {
+      if (detector.getMoveThreshold() != options.trackingInitialMoveThreshold()) {
+        detector.setMoveThreshold(options.trackingInitialMoveThreshold());
+        interrupt = true;
       }
     }
 
@@ -384,6 +426,7 @@ final class LocationCameraController {
     public void onMoveEnd(@NonNull MoveGestureDetector detector) {
       if (options.trackingGesturesManagement() && !interrupt && isLocationTracking()) {
         detector.setMoveThreshold(options.trackingInitialMoveThreshold());
+        detector.setMoveThresholdRect(null);
       }
       interrupt = false;
     }

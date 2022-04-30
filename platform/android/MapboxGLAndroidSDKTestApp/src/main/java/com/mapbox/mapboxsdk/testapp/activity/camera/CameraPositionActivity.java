@@ -3,19 +3,20 @@ package com.mapbox.mapboxsdk.testapp.activity.camera;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.support.annotation.IdRes;
-import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v4.app.FragmentActivity;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.IdRes;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentActivity;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
@@ -24,6 +25,7 @@ import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.testapp.R;
+
 import timber.log.Timber;
 
 import static com.mapbox.mapboxsdk.constants.GeometryConstants.MAX_LATITUDE;
@@ -58,7 +60,7 @@ public class CameraPositionActivity extends FragmentActivity implements OnMapRea
   @Override
   public void onMapReady(@NonNull final MapboxMap map) {
     mapboxMap = map;
-    map.setStyle(Style.SATELLITE_STREETS, style -> {
+    map.setStyle(Style.getPredefinedStyle("Satellite Hybrid"), style -> {
       // add a listener to FAB
       fab = findViewById(R.id.fab);
       fab.setColorFilter(ContextCompat.getColor(CameraPositionActivity.this, R.color.primary));

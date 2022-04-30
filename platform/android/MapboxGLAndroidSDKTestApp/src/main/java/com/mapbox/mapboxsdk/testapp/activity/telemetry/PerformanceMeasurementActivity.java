@@ -1,13 +1,12 @@
-package com.mapbox.mapboxsdk.testapp.activity.telemetry;
-
 import android.app.ActivityManager;
 import android.content.Context;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.WindowManager;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -48,7 +47,7 @@ public class PerformanceMeasurementActivity extends AppCompatActivity {
     HttpRequestUtil.setOkHttpClient(okHttpClient);
 
     mapView.getMapAsync(mapboxMap -> mapboxMap.setStyle(
-      new Style.Builder().fromUri(Style.MAPBOX_STREETS)));
+      new Style.Builder().fromUri(Style.getPredefinedStyle("Streets"))));
   }
 
 
@@ -123,8 +122,6 @@ public class PerformanceMeasurementActivity extends AppCompatActivity {
     bundle.putString("attributes", gson.toJson(attributes));
     bundle.putString("counters", gson.toJson(counters));
     bundle.putString("metadata", metaData.toString());
-
-    Mapbox.getTelemetry().onPerformanceEvent(bundle);
   }
 
   private static String getRam() {

@@ -95,7 +95,7 @@ namespace mbgl {
     PointAndCameraDistance project(const Point<float>& point, const mat4& matrix) {
         vec4 pos = {{ point.x, point.y, 0, 1 }};
         matrix::transformMat4(pos, pos, matrix);
-        return {{ static_cast<float>(pos[0] / pos[3]), static_cast<float>(pos[1] / pos[3]) }, pos[3] };
+        return {{ static_cast<float>(pos[0] / pos[3]), static_cast<float>(pos[1] / pos[3]) }, static_cast<float>(pos[3]) };
     }
 
     float evaluateSizeForFeature(const ZoomEvaluatedSize& zoomEvaluatedSize, const PlacedSymbol& placedSymbol) {
@@ -111,8 +111,8 @@ namespace mbgl {
     }
 
     bool isVisible(const vec4& anchorPos, const std::array<double, 2>& clippingBuffer) {
-        const float x = anchorPos[0] / anchorPos[3];
-        const float y = anchorPos[1] / anchorPos[3];
+        const double x = anchorPos[0] / anchorPos[3];
+        const double y = anchorPos[1] / anchorPos[3];
         const bool inPaddedViewport = (
                 x >= -clippingBuffer[0] &&
                 x <= clippingBuffer[0] &&
@@ -169,10 +169,10 @@ namespace mbgl {
             // The label needs to be flipped to keep text upright.
             // Iterate in the reverse direction.
             dir *= -1;
-            angle = M_PI;
+            angle = static_cast<float>(M_PI);
         }
 
-        if (dir < 0) angle += M_PI;
+        if (dir < 0) angle += static_cast<float>(M_PI);
 
         int32_t currentIndex = dir > 0 ? anchorSegment : anchorSegment + 1;
 
@@ -242,19 +242,17 @@ namespace mbgl {
                                                             const bool returnTileDistance) {
         if (symbol.glyphOffsets.empty()) {
             assert(false);
-            return optional<std::pair<PlacedGlyph, PlacedGlyph>>();
+            return {};
         }
         
         const float firstGlyphOffset = symbol.glyphOffsets.front();
         const float lastGlyphOffset = symbol.glyphOffsets.back();;
 
-        optional<PlacedGlyph> firstPlacedGlyph = placeGlyphAlongLine(fontScale * firstGlyphOffset, lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, symbol.segment, symbol.line, symbol.tileDistances, labelPlaneMatrix,  returnTileDistance);
-        if (!firstPlacedGlyph)
-            return optional<std::pair<PlacedGlyph, PlacedGlyph>>();
+        optional<PlacedGlyph> firstPlacedGlyph = placeGlyphAlongLine(fontScale * firstGlyphOffset, lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, static_cast<uint16_t>(symbol.segment), symbol.line, symbol.tileDistances, labelPlaneMatrix, returnTileDistance);
+        if (!firstPlacedGlyph) return {};
 
-        optional<PlacedGlyph> lastPlacedGlyph = placeGlyphAlongLine(fontScale * lastGlyphOffset, lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, symbol.segment, symbol.line, symbol.tileDistances, labelPlaneMatrix, returnTileDistance);
-        if (!lastPlacedGlyph)
-            return optional<std::pair<PlacedGlyph, PlacedGlyph>>();
+        optional<PlacedGlyph> lastPlacedGlyph = placeGlyphAlongLine(fontScale * lastGlyphOffset, lineOffsetX, lineOffsetY, flip, anchorPoint, tileAnchorPoint, static_cast<uint16_t>(symbol.segment), symbol.line, symbol.tileDistances, labelPlaneMatrix, returnTileDistance);
+        if (!lastPlacedGlyph) return {};
 
         return std::make_pair(*firstPlacedGlyph, *lastPlacedGlyph);
     }
@@ -318,7 +316,7 @@ namespace mbgl {
             for (size_t glyphIndex = 1; glyphIndex < symbol.glyphOffsets.size() - 1; glyphIndex++) {
                 const float glyphOffsetX = symbol.glyphOffsets[glyphIndex];
                 // Since first and last glyph fit on the line, we're sure that the rest of the glyphs can be placed
-                auto placedGlyph = placeGlyphAlongLine(glyphOffsetX * fontScale, lineOffsetX, lineOffsetY, flip, projectedAnchorPoint, symbol.anchorPoint, symbol.segment, symbol.line, symbol.tileDistances, labelPlaneMatrix, false);
+                auto placedGlyph = placeGlyphAlongLine(glyphOffsetX * fontScale, lineOffsetX, lineOffsetY, flip, projectedAnchorPoint, symbol.anchorPoint, static_cast<uint16_t>(symbol.segment), symbol.line, symbol.tileDistances, labelPlaneMatrix, false);
                 if (placedGlyph) {
                     placedGlyphs.push_back(*placedGlyph);
                 } else {
@@ -346,7 +344,7 @@ namespace mbgl {
                 }
             }
             const float glyphOffsetX = symbol.glyphOffsets.front();
-            optional<PlacedGlyph> singleGlyph = placeGlyphAlongLine(fontScale * glyphOffsetX, lineOffsetX, lineOffsetY, flip, projectedAnchorPoint, symbol.anchorPoint, symbol.segment,
+            optional<PlacedGlyph> singleGlyph = placeGlyphAlongLine(fontScale * glyphOffsetX, lineOffsetX, lineOffsetY, flip, projectedAnchorPoint, symbol.anchorPoint, static_cast<uint16_t>(symbol.segment),
                 symbol.line, symbol.tileDistances, labelPlaneMatrix, false);
             if (!singleGlyph)
                 return PlacementResult::NotEnoughRoom;
@@ -368,11 +366,11 @@ namespace mbgl {
 			const mat4& posMatrix, bool pitchWithMap, bool rotateWithMap, bool keepUpright,
             const RenderTile& tile, const SymbolSizeBinder& sizeBinder, const TransformState& state) {
 
-        const ZoomEvaluatedSize partiallyEvaluatedSize = sizeBinder.evaluateForZoom(state.getZoom());
+        const ZoomEvaluatedSize partiallyEvaluatedSize = sizeBinder.evaluateForZoom(static_cast<float>(state.getZoom()));
 
         const std::array<double, 2> clippingBuffer = {{ 256.0 / state.getSize().width * 2.0 + 1.0, 256.0 / state.getSize().height * 2.0 + 1.0 }};
 
-        const float pixelsToTileUnits = tile.id.pixelsToTileUnits(1, state.getZoom());
+        const float pixelsToTileUnits = tile.id.pixelsToTileUnits(1.0f, static_cast<float>(state.getZoom()));
 
         const mat4 labelPlaneMatrix = getLabelPlaneMatrix(posMatrix, pitchWithMap,
                 rotateWithMap, state, pixelsToTileUnits);
@@ -403,14 +401,14 @@ namespace mbgl {
                 continue;
             }
 
-            const float cameraToAnchorDistance = anchorPos[3];
-            const float perspectiveRatio = 0.5 + 0.5 * (cameraToAnchorDistance / state.getCameraToCenterDistance());
+            const auto cameraToAnchorDistance = static_cast<float>(anchorPos[3]);
+            const float perspectiveRatio = 0.5f + 0.5f * (cameraToAnchorDistance / state.getCameraToCenterDistance());
 
             const float fontSize = evaluateSizeForFeature(partiallyEvaluatedSize, placedSymbol);
             const float pitchScaledFontSize = pitchWithMap ?
                 fontSize * perspectiveRatio :
                 fontSize / perspectiveRatio;
-            
+
             const Point<float> anchorPoint = project(placedSymbol.anchorPoint, labelPlaneMatrix).first;
 
             PlacementResult placeUnflipped = placeGlyphsAlongLine(placedSymbol, pitchScaledFontSize, false /*unflipped*/, keepUpright, posMatrix, labelPlaneMatrix, glCoordMatrix, dynamicVertexArray, anchorPoint, state.getSize().aspectRatio());

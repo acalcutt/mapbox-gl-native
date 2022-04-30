@@ -2,8 +2,9 @@ package com.mapbox.mapboxsdk.testapp.activity.style;
 
 import android.graphics.Color;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.mapbox.geojson.Feature;
 import com.mapbox.geojson.FeatureCollection;
@@ -18,7 +19,6 @@ import com.mapbox.mapboxsdk.style.layers.LineLayer;
 import com.mapbox.mapboxsdk.style.sources.CustomGeometrySource;
 import com.mapbox.mapboxsdk.style.sources.GeometryTileProvider;
 import com.mapbox.mapboxsdk.testapp.R;
-
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -109,7 +109,7 @@ public class GridSourceActivity extends AppCompatActivity implements OnMapReadyC
     );
 
     map.setStyle(new Style.Builder()
-      .fromUri(Style.MAPBOX_STREETS)
+      .fromUri(Style.getPredefinedStyle("Streets"))
       .withLayer(layer)
       .withSource(source)
     );

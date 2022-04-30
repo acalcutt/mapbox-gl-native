@@ -1,9 +1,11 @@
+#include <mbgl/actor/actor_ref.hpp>
 #include <mbgl/storage/asset_file_source.hpp>
-#include <mbgl/util/platform.hpp>
+#include <mbgl/storage/resource_options.hpp>
+#include <mbgl/storage/resource.hpp>
 #include <mbgl/util/chrono.hpp>
+#include <mbgl/util/platform.hpp>
 #include <mbgl/util/run_loop.hpp>
 #include <mbgl/util/thread.hpp>
-#include <mbgl/actor/actor_ref.hpp>
 
 #include <gtest/gtest.h>
 #include <atomic>
@@ -14,7 +16,7 @@ using namespace mbgl;
 TEST(AssetFileSource, Load) {
     util::RunLoop loop;
 
-    AssetFileSource fs("test/fixtures/storage/assets");
+    AssetFileSource fs(ResourceOptions::Default().withAssetPath("test/fixtures/storage/assets"));
 
     // iOS seems to run out of file descriptors...
 #if TARGET_OS_IPHONE
@@ -70,18 +72,19 @@ TEST(AssetFileSource, Load) {
 }
 
 TEST(AssetFileSource, AcceptsURL) {
-    EXPECT_TRUE(AssetFileSource::acceptsURL("asset://empty"));
-    EXPECT_TRUE(AssetFileSource::acceptsURL("asset:///test"));
-    EXPECT_FALSE(AssetFileSource::acceptsURL("assds://foo"));
-    EXPECT_FALSE(AssetFileSource::acceptsURL("asset:"));
-    EXPECT_FALSE(AssetFileSource::acceptsURL("style.json"));
-    EXPECT_FALSE(AssetFileSource::acceptsURL(""));
+    AssetFileSource fs(ResourceOptions::Default().withAssetPath("test/fixtures/storage/assets"));
+    EXPECT_TRUE(fs.canRequest(Resource::style("asset://empty")));
+    EXPECT_TRUE(fs.canRequest(Resource::style("asset:///test")));
+    EXPECT_FALSE(fs.canRequest(Resource::style("assds://foo")));
+    EXPECT_FALSE(fs.canRequest(Resource::style("asset:")));
+    EXPECT_FALSE(fs.canRequest(Resource::style("style.json")));
+    EXPECT_FALSE(fs.canRequest(Resource::style("")));
 }
 
 TEST(AssetFileSource, EmptyFile) {
     util::RunLoop loop;
 
-    AssetFileSource fs("test/fixtures/storage/assets");
+    AssetFileSource fs(ResourceOptions::Default().withAssetPath("test/fixtures/storage/assets"));
 
     std::unique_ptr<AsyncRequest> req = fs.request({ Resource::Unknown, "asset://empty" }, [&](Response res) {
         req.reset();
@@ -97,7 +100,7 @@ TEST(AssetFileSource, EmptyFile) {
 TEST(AssetFileSource, NonEmptyFile) {
     util::RunLoop loop;
 
-    AssetFileSource fs("test/fixtures/storage/assets");
+    AssetFileSource fs(ResourceOptions::Default().withAssetPath("test/fixtures/storage/assets"));
 
     std::unique_ptr<AsyncRequest> req = fs.request({ Resource::Unknown, "asset://nonempty" }, [&](Response res) {
         req.reset();
@@ -113,7 +116,7 @@ TEST(AssetFileSource, NonEmptyFile) {
 TEST(AssetFileSource, NonExistentFile) {
     util::RunLoop loop;
 
-    AssetFileSource fs("test/fixtures/storage/assets");
+    AssetFileSource fs(ResourceOptions::Default().withAssetPath("test/fixtures/storage/assets"));
 
     std::unique_ptr<AsyncRequest> req = fs.request({ Resource::Unknown, "asset://does_not_exist" }, [&](Response res) {
         req.reset();
@@ -130,7 +133,7 @@ TEST(AssetFileSource, NonExistentFile) {
 TEST(AssetFileSource, InvalidURL) {
     util::RunLoop loop;
 
-    AssetFileSource fs("test/fixtures/storage/assets");
+    AssetFileSource fs(ResourceOptions::Default().withAssetPath("test/fixtures/storage/assets"));
 
     std::unique_ptr<AsyncRequest> req = fs.request({ Resource::Unknown, "test://wrong-scheme" }, [&](Response res) {
         req.reset();
@@ -147,7 +150,7 @@ TEST(AssetFileSource, InvalidURL) {
 TEST(AssetFileSource, ReadDirectory) {
     util::RunLoop loop;
 
-    AssetFileSource fs("test/fixtures/storage/assets");
+    AssetFileSource fs(ResourceOptions::Default().withAssetPath("test/fixtures/storage/assets"));
 
     std::unique_ptr<AsyncRequest> req = fs.request({ Resource::Unknown, "asset://directory" }, [&](Response res) {
         req.reset();
@@ -164,7 +167,7 @@ TEST(AssetFileSource, ReadDirectory) {
 TEST(AssetFileSource, URLEncoding) {
     util::RunLoop loop;
 
-    AssetFileSource fs("test/fixtures/storage/assets");
+    AssetFileSource fs(ResourceOptions::Default().withAssetPath("test/fixtures/storage/assets"));
 
     std::unique_ptr<AsyncRequest> req = fs.request({ Resource::Unknown, "asset://%6eonempty" }, [&](Response res) {
         req.reset();

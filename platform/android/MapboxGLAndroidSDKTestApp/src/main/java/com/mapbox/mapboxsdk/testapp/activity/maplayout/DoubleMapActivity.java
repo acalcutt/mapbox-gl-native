@@ -2,14 +2,16 @@ package com.mapbox.mapboxsdk.testapp.activity.maplayout;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentTransaction;
-import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
+
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
@@ -75,7 +77,7 @@ public class DoubleMapActivity extends AppCompatActivity {
       // MapView large
       mapView = new MapView(view.getContext(), MapFragmentUtils.resolveArgs(view.getContext(), getArguments()));
       mapView.onCreate(savedInstanceState);
-      mapView.getMapAsync(mapboxMap -> mapboxMap.setStyle(Style.MAPBOX_STREETS));
+      mapView.getMapAsync(mapboxMap -> mapboxMap.setStyle(Style.getPredefinedStyle("Streets")));
       ((ViewGroup) view.findViewById(R.id.container)).addView(mapView, 0);
 
       // MapView mini
@@ -88,7 +90,7 @@ public class DoubleMapActivity extends AppCompatActivity {
             .build()
           )
         );
-        mapboxMap.setStyle(new Style.Builder().fromUri(Style.LIGHT));
+        mapboxMap.setStyle(new Style.Builder().fromUri(Style.getPredefinedStyle("Bright")));
 
         UiSettings uiSettings = mapboxMap.getUiSettings();
         uiSettings.setAllGesturesEnabled(false);

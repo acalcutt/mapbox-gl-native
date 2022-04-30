@@ -5,14 +5,15 @@ import android.graphics.Bitmap;
 import android.graphics.PointF;
 import android.graphics.RectF;
 import android.os.Bundle;
-import android.support.annotation.FloatRange;
-import android.support.annotation.IntRange;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.Size;
-import android.support.annotation.UiThread;
 import android.text.TextUtils;
 import android.view.View;
+
+import androidx.annotation.FloatRange;
+import androidx.annotation.IntRange;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.Size;
+import androidx.annotation.UiThread;
 
 import com.mapbox.android.gestures.AndroidGesturesManager;
 import com.mapbox.android.gestures.MoveGestureDetector;
@@ -80,6 +81,7 @@ public final class MapboxMap {
   private Style style;
 
   private boolean debugActive;
+  private boolean started;
 
   MapboxMap(NativeMap map, Transform transform, UiSettings ui, Projection projection,
             OnGesturesManagerInteractionListener listener, CameraChangeDispatcher cameraChangeDispatcher,
@@ -91,6 +93,13 @@ public final class MapboxMap {
     this.onGesturesManagerInteractionListener = listener;
     this.cameraChangeDispatcher = cameraChangeDispatcher;
     this.developerAnimationStartedListeners = developerAnimationStartedListeners;
+  }
+
+  /**
+   * Trigger the mapview to repaint.
+   */
+  public void triggerRepaint() {
+    nativeMapView.triggerRepaint();
   }
 
   void initialise(@NonNull Context context, @NonNull MapboxMapOptions options) {
@@ -135,6 +144,7 @@ public final class MapboxMap {
    * Called when the hosting Activity/Fragment onStart() method is called.
    */
   void onStart() {
+    started = true;
     locationComponent.onStart();
   }
 
@@ -142,6 +152,7 @@ public final class MapboxMap {
    * Called when the hosting Activity/Fragment onStop() method is called.
    */
   void onStop() {
+    started = false;
     locationComponent.onStop();
   }
 
@@ -363,6 +374,66 @@ public final class MapboxMap {
    */
   public double getMaxZoomLevel() {
     return transform.getMaxZoom();
+  }
+
+  //
+  // MinPitch
+  //
+
+  /**
+   * <p>
+   * Sets the minimum Pitch the map can be displayed at.
+   * </p>
+   *
+   * <p>
+   * The default and lower bound for minPitch Pitch is 0.
+   * </p>
+   * @param minPitch The new minimum Pitch.
+   */
+  public void setMinPitchPreference(
+    @FloatRange(from = MapboxConstants.MINIMUM_PITCH, to = MapboxConstants.MAXIMUM_PITCH) double minPitch) {
+    transform.setMinPitch(minPitch);
+  }
+
+  /**
+   * <p>
+   * Gets the minimum Pitch the map can be displayed at.
+   * </p>
+   *
+   * @return The minimum Pitch.
+   */
+  public double getMinPitch() {
+    return transform.getMinPitch();
+  }
+
+  //
+  // MaxPitch
+  //
+
+  /**
+   * <p>
+   * Sets the maximum Pitch the map can be displayed at.
+   * </p>
+   * <p>
+   * The default and upper bound for maximum Pitch is 60.
+   * </p>
+   *
+   * @param maxPitch The new maximum Pitch.
+   */
+  public void setMaxPitchPreference(@FloatRange(from = MapboxConstants.MINIMUM_PITCH,
+    to = MapboxConstants.MAXIMUM_PITCH) double maxPitch) {
+    transform.setMaxPitch(maxPitch);
+  }
+
+  /**
+   * <p>
+   * Gets the maximum Pitch the map can be displayed at.
+   * </p>
+   *
+   * @return The maximum Pitch.
+   */
+  public double getMaxPitch() {
+    return transform.getMaxPitch();
   }
 
   //
@@ -775,10 +846,12 @@ public final class MapboxMap {
    * any map debug options enabled or disabled.
    *
    * @see #isDebugActive()
+   * @deprecated use {@link #setDebugActive(boolean)}
    */
+  @Deprecated
   public void cycleDebugOptions() {
-    nativeMapView.cycleDebugOptions();
-    this.debugActive = nativeMapView.getDebug();
+    this.debugActive = !nativeMapView.getDebug();
+    nativeMapView.setDebug(debugActive);
   }
 
   //
@@ -810,7 +883,7 @@ public final class MapboxMap {
    * @param style The bundled style
    * @see Style
    */
-  public void setStyle(@Style.StyleUrl String style) {
+  public void setStyle(String style) {
     this.setStyle(style, null);
   }
 
@@ -826,7 +899,7 @@ public final class MapboxMap {
    * @param callback The callback to be invoked when the style has loaded
    * @see Style
    */
-  public void setStyle(@Style.StyleUrl String style, final Style.OnStyleLoaded callback) {
+  public void setStyle(String style, final Style.OnStyleLoaded callback) {
     this.setStyle(new Style.Builder().fromUri(style), callback);
   }
 
@@ -1933,6 +2006,9 @@ public final class MapboxMap {
    * @param callback Callback method invoked when the snapshot is taken.
    */
   public void snapshot(@NonNull SnapshotReadyCallback callback) {
+    if (!started) {
+      return;
+    }
     nativeMapView.addSnapshotCallback(callback);
   }
 

@@ -10,36 +10,43 @@ CollisionFeature::CollisionFeature(const GeometryCoordinates& line,
                                    const float bottom,
                                    const float left,
                                    const float right,
+                                   const optional<Padding>& collisionPadding,
                                    const float boxScale,
                                    const float padding,
                                    const style::SymbolPlacementType placement,
                                    IndexedSubfeature indexedFeature_,
                                    const float overscaling,
                                    const float rotate)
-        : indexedFeature(std::move(indexedFeature_))
-        , alongLine(placement != style::SymbolPlacementType::Point) {
+    : indexedFeature(std::move(indexedFeature_)), alongLine(placement != style::SymbolPlacementType::Point) {
     if (top == 0 && bottom == 0 && left == 0 && right == 0) return;
 
-    const float y1 = top * boxScale - padding;
-    const float y2 = bottom * boxScale + padding;
-    const float x1 = left * boxScale - padding;
-    const float x2 = right * boxScale + padding;
+    float y1 = top * boxScale - padding;
+    float y2 = bottom * boxScale + padding;
+    float x1 = left * boxScale - padding;
+    float x2 = right * boxScale + padding;
+
+    if (collisionPadding) {
+        x1 -= collisionPadding->left * boxScale;
+        y1 -= collisionPadding->top * boxScale;
+        x2 += collisionPadding->right * boxScale;
+        y2 += collisionPadding->bottom * boxScale;
+    }
 
     if (alongLine) {
         float height = y2 - y1;
-        const double length = x2 - x1;
+        const float length = x2 - x1;
 
         if (height <= 0.0f) return;
 
         height = std::max(10.0f * boxScale, height);
 
         GeometryCoordinate anchorPoint = convertPoint<int16_t>(anchor.point);
-        bboxifyLabel(line, anchorPoint, anchor.segment, length, height, overscaling);
+        bboxifyLabel(line, anchorPoint, anchor.segment.value_or(0u), length, height, overscaling);
     } else {
         if (rotate) {
             // Account for *-rotate in point collision boxes
             // Doesn't account for icon-text-fit
-            const float rotateRadians = rotate * M_PI / 180.0;
+            const float rotateRadians = rotate * util::DEG2RAD_F;
 
             const Point<float> tl = util::rotate(Point<float>(x1, y1), rotateRadians);
             const Point<float> tr = util::rotate(Point<float>(x2, y1), rotateRadians);
@@ -61,8 +68,12 @@ CollisionFeature::CollisionFeature(const GeometryCoordinates& line,
     }
 }
 
-void CollisionFeature::bboxifyLabel(const GeometryCoordinates& line, GeometryCoordinate& anchorPoint,
-                                    const int segment, const float labelLength, const float boxSize, const float overscaling) {
+void CollisionFeature::bboxifyLabel(const GeometryCoordinates& line,
+                                    GeometryCoordinate& anchorPoint,
+                                    std::size_t segment,
+                                    const float labelLength,
+                                    const float boxSize,
+                                    const float overscaling) {
     const float step = boxSize / 2;
     const int nBoxes = std::max(static_cast<int>(std::floor(labelLength / step)), 1);
 
@@ -74,24 +85,22 @@ void CollisionFeature::bboxifyLabel(const GeometryCoordinates& line, GeometryCoo
     // symbol spacing will put labels very close together in a pitched map.
     // To reduce the cost of adding extra collision circles, we slowly increase
     // them for overscaled tiles.
-    const float overscalingPaddingFactor = 1 + .4 * util::log2(static_cast<double>(overscaling));
-    const int nPitchPaddingBoxes = std::floor(nBoxes * overscalingPaddingFactor / 2);
+    const double overscalingPaddingFactor = 1 + .4 * util::log2(static_cast<double>(overscaling));
+    const int nPitchPaddingBoxes = static_cast<int>(std::floor(nBoxes * overscalingPaddingFactor / 2));
 
     // offset the center of the first box by half a box so that the edge of the
     // box is at the edge of the label.
     const float firstBoxOffset = -boxSize / 2;
 
     GeometryCoordinate &p = anchorPoint;
-    int index = segment + 1;
+    std::size_t index = segment + 1;
     float anchorDistance = firstBoxOffset;
     const float labelStartDistance = -labelLength / 2;
     const float paddingStartDistance = labelStartDistance - labelLength / 8;
 
     // move backwards along the line to the first segment the label appears on
     do {
-        index--;
-
-        if (index < 0) {
+        if (index == 0u) {
             if (anchorDistance > labelStartDistance) {
                 // there isn't enough room for the label after the beginning of the line
                 // checkMaxAngle should have already caught this
@@ -104,6 +113,7 @@ void CollisionFeature::bboxifyLabel(const GeometryCoordinates& line, GeometryCoo
             }
         }
 
+        index--;
         anchorDistance -= util::dist<float>(line[index], p);
         p = line[index];
     } while (anchorDistance > paddingStartDistance);
@@ -131,7 +141,7 @@ void CollisionFeature::bboxifyLabel(const GeometryCoordinates& line, GeometryCoo
             index++;
 
             // There isn't enough room before the end of the line.
-            if (index + 1 >= (int)line.size()) return;
+            if (index + 1 >= line.size()) return;
 
             segmentLength = util::dist<float>(line[index], line[index + 1]);
         }
@@ -152,12 +162,11 @@ void CollisionFeature::bboxifyLabel(const GeometryCoordinates& line, GeometryCoo
         // Otherwise, the .8 multiplication gives us a little bit of conservative
         // padding in choosing which boxes to use (see CollisionIndex#placedCollisionCircles)
         const float paddedAnchorDistance = std::abs(boxDistanceToAnchor - firstBoxOffset) < step ?
-            0 :
-            (boxDistanceToAnchor - firstBoxOffset) * 0.8;
+            0.0f :
+            (boxDistanceToAnchor - firstBoxOffset) * 0.8f;
 
         boxes.emplace_back(boxAnchor, -boxSize / 2, -boxSize / 2, boxSize / 2, boxSize / 2, paddedAnchorDistance);
     }
 }
-
 
 } // namespace mbgl

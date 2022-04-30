@@ -5,11 +5,12 @@ import android.graphics.PointF;
 import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.gson.JsonElement;
 import com.mapbox.geojson.Feature;
@@ -20,7 +21,6 @@ import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.testapp.R;
-
 
 import java.util.List;
 import java.util.Map;
@@ -71,7 +71,7 @@ public class QueryRenderedFeaturesPropertiesActivity extends AppCompatActivity {
     mapView = (MapView) findViewById(R.id.mapView);
     mapView.onCreate(savedInstanceState);
     mapView.getMapAsync(mapboxMap -> {
-      mapboxMap.setStyle(Style.MAPBOX_STREETS, style -> {
+      mapboxMap.setStyle(Style.getPredefinedStyle("Streets"), style -> {
         QueryRenderedFeaturesPropertiesActivity.this.mapboxMap = mapboxMap;
 
         // Add custom window adapter

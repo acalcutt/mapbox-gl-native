@@ -37,12 +37,6 @@ public class MapboxConstants {
    */
   public static final boolean DEFAULT_MEASURE_TILE_DOWNLOAD_ON = false;
 
-  public static final String KEY_PREFERENCE_SKU_TOKEN = "com.mapbox.mapboxsdk.accounts.skutoken";
-
-  public static final String KEY_META_DATA_MANAGE_SKU_TOKEN = "com.mapbox.ManageSkuToken";
-
-  public static final boolean DEFAULT_MANAGE_SKU_TOKEN = true;
-
   /**
    * Default value for font fallback for local ideograph fonts
    */
@@ -72,6 +66,11 @@ public class MapboxConstants {
    * Velocity threshold for a fling gesture
    */
   public static final long VELOCITY_THRESHOLD_IGNORE_FLING = 1000;
+
+  /**
+   * Vertical angle threshold for a horizontal disabled fling gesture
+   */
+  public static final long ANGLE_THRESHOLD_IGNORE_VERTICAL_FLING = 75;
 
   /**
    * Value by which the default rotation threshold will be increased when scaling
@@ -140,6 +139,16 @@ public class MapboxConstants {
   public static final float MAXIMUM_ZOOM = 25.5f;
 
   /**
+   * The currently supported minimum pitch level.
+   */
+  public static final float MINIMUM_PITCH = 0.0f;
+
+  /**
+   * The currently supported maximum pitch level.
+   */
+  public static final float MAXIMUM_PITCH = 60.0f;
+
+  /**
    * The currently supported maximum tilt value.
    */
   public static final double MAXIMUM_TILT = 60;
@@ -195,6 +204,7 @@ public class MapboxConstants {
   public static final String STATE_CAMERA_POSITION = "mapbox_cameraPosition";
   public static final String STATE_ZOOM_ENABLED = "mapbox_zoomEnabled";
   public static final String STATE_SCROLL_ENABLED = "mapbox_scrollEnabled";
+  public static final String STATE_HORIZONAL_SCROLL_ENABLED = "mapbox_horizontalScrollEnabled";
   public static final String STATE_ROTATE_ENABLED = "mapbox_rotateEnabled";
   public static final String STATE_TILT_ENABLED = "mapbox_tiltEnabled";
   public static final String STATE_DOUBLE_TAP_ENABLED = "mapbox_doubleTapEnabled";

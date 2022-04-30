@@ -2,12 +2,6 @@ package com.mapbox.mapboxsdk.testapp.activity.maplayout;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v4.widget.DrawerLayout;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -17,6 +11,13 @@ import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.drawerlayout.widget.DrawerLayout;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.MapboxMapOptions;
@@ -46,15 +47,12 @@ public class DebugModeActivity extends AppCompatActivity implements OnMapReadyCa
   private boolean isReportFps = true;
 
   private static final String[] STYLES = new String[] {
-    Style.MAPBOX_STREETS,
-    Style.OUTDOORS,
-    Style.LIGHT,
-    Style.DARK,
-    Style.SATELLITE,
-    Style.SATELLITE_STREETS,
-    Style.TRAFFIC_DAY,
-    Style.TRAFFIC_NIGHT
-  };
+    Style.getPredefinedStyle("Streets"),
+    Style.getPredefinedStyle("Outdoor"),
+    Style.getPredefinedStyle("Bright"),
+    Style.getPredefinedStyle("Pastel"),
+    Style.getPredefinedStyle("Satellite Hybrid"),
+    Style.getPredefinedStyle("Satellite Hybrid")  };
   private TextView fpsView;
 
   @Override
@@ -164,8 +162,8 @@ public class DebugModeActivity extends AppCompatActivity implements OnMapReadyCa
     FloatingActionButton fabDebug = findViewById(R.id.fabDebug);
     fabDebug.setOnClickListener(view -> {
       if (mapboxMap != null) {
+        mapboxMap.setDebugActive(!mapboxMap.isDebugActive());
         Timber.d("Debug FAB: isDebug Active? %s", mapboxMap.isDebugActive());
-        mapboxMap.cycleDebugOptions();
       }
     });
   }

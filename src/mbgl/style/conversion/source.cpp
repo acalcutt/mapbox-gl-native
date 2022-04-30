@@ -43,7 +43,7 @@ static optional<std::unique_ptr<Source>> convertRasterSource(const std::string& 
         return nullopt;
     }
 
-    uint16_t tileSize = util::tileSize;
+    uint16_t tileSize = util::tileSize_I;
     auto tileSizeValue = objectMember(value, "tileSize");
     if (tileSizeValue) {
         optional<float> size = toNumber(*tileSizeValue);
@@ -51,7 +51,7 @@ static optional<std::unique_ptr<Source>> convertRasterSource(const std::string& 
             error.message = "invalid tileSize";
             return nullopt;
         }
-        tileSize = *size;
+        tileSize = static_cast<uint16_t>(*size);
     }
 
     return { std::make_unique<RasterSource>(id, std::move(*urlOrTileset), tileSize) };
@@ -65,7 +65,7 @@ static optional<std::unique_ptr<Source>> convertRasterDEMSource(const std::strin
         return nullopt;
     }
 
-    uint16_t tileSize = util::tileSize;
+    uint16_t tileSize = util::tileSize_I;
     auto tileSizeValue = objectMember(value, "tileSize");
     if (tileSizeValue) {
         optional<float> size = toNumber(*tileSizeValue);
@@ -73,7 +73,7 @@ static optional<std::unique_ptr<Source>> convertRasterDEMSource(const std::strin
             error.message = "invalid tileSize";
             return nullopt;
         }
-        tileSize = *size;
+        tileSize = static_cast<uint16_t>(*size);
     }
 
     return { std::make_unique<RasterDEMSource>(id, std::move(*urlOrTileset), tileSize) };
@@ -116,12 +116,12 @@ static optional<std::unique_ptr<Source>> convertGeoJSONSource(const std::string&
         return nullopt;
     }
 
-    optional<GeoJSONOptions> options = convert<GeoJSONOptions>(value, error);
-    if (!options) {
-        return nullopt;
+    Immutable<GeoJSONOptions> options = GeoJSONOptions::defaultOptions();
+    if (optional<GeoJSONOptions> converted = convert<GeoJSONOptions>(value, error)) {
+        options = makeMutable<GeoJSONOptions>(std::move(*converted));
     }
 
-    auto result = std::make_unique<GeoJSONSource>(id, *options);
+    auto result = std::make_unique<GeoJSONSource>(id, std::move(options));
 
     if (isObject(*dataValue)) {
         optional<GeoJSON> geoJSON = convert<GeoJSON>(*dataValue, error);
@@ -196,16 +196,16 @@ optional<std::unique_ptr<Source>> Converter<std::unique_ptr<Source>>::operator()
         error.message = "source type must be a string";
         return nullopt;
     }
-    const std::string tname = *type;
-    if (*type == "raster") {
+    const std::string& tname = type.value();
+    if (tname == "raster") {
         return convertRasterSource(id, value, error);
-    } else if (*type == "raster-dem") {
+    } else if (tname == "raster-dem") {
         return convertRasterDEMSource(id, value, error);
-    } else if (*type == "vector") {
+    } else if (tname == "vector") {
         return convertVectorSource(id, value, error);
-    } else if (*type == "geojson") {
+    } else if (tname == "geojson") {
         return convertGeoJSONSource(id, value, error);
-    } else if (*type == "image") {
+    } else if (tname == "image") {
         return convertImageSource(id, value, error);
     } else {
         error.message = "invalid source type";

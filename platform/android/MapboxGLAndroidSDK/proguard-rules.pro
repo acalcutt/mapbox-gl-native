@@ -16,7 +16,7 @@
 -dontnote com.mapbox.mapboxsdk.maps.MapboxMap
 -dontnote com.mapbox.mapboxsdk.maps.MapboxMapOptions
 -dontnote com.mapbox.mapboxsdk.log.LoggerDefinition
--dontnote com.mapbox.android.core.location.LocationEnginePriority
+-dontnote com.mapbox.mapboxsdk.location.engine.LocationEnginePriority
 
 # config for okhttp 3.11.0, https://github.com/square/okhttp/pull/3354
 -dontwarn javax.annotation.**

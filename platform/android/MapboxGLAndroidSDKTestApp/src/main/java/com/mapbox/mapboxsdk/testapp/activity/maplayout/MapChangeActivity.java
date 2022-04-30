@@ -1,7 +1,8 @@
 package com.mapbox.mapboxsdk.testapp.activity.maplayout;
 
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
@@ -39,7 +40,7 @@ public class MapChangeActivity extends AppCompatActivity {
     mapView.addOnWillStartRenderingMapListener(() -> Timber.v("OnWillStartRenderingMap"));
     mapView.onCreate(savedInstanceState);
     mapView.getMapAsync(mapboxMap -> {
-      mapboxMap.setStyle(Style.MAPBOX_STREETS);
+      mapboxMap.setStyle(Style.getPredefinedStyle("Streets"));
       mapboxMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
         new LatLng(55.754020, 37.620948), 12), 9000);
     });

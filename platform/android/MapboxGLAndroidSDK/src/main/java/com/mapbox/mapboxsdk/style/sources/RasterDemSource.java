@@ -1,15 +1,15 @@
 package com.mapbox.mapboxsdk.style.sources;
 
-import android.support.annotation.Keep;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.UiThread;
+import androidx.annotation.Keep;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.UiThread;
 
 import java.net.URI;
 import java.net.URL;
 
 /**
- * A raster DEM source. Currently only supports Mapbox Terrain RGB (mapbox://mapbox.terrain-rgb)
+ * A raster DEM source.
  *
  * @see <a href="https://www.mapbox.com/mapbox-gl-js/style-spec/#sources-raster-dem">The style specification</a>
  */

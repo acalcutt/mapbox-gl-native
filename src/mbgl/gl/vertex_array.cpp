@@ -12,9 +12,11 @@ void VertexArray::bind(Context& context,
     state->indexBuffer = indexBuffer.getResource<gl::IndexBufferResource>().buffer;
 
     state->bindings.reserve(bindings.size());
+
+    // NOLINTNEXTLINE(bugprone-too-small-loop-variable)
     for (AttributeLocation location = 0; location < bindings.size(); ++location) {
         if (state->bindings.size() <= location) {
-            state->bindings.emplace_back(context, AttributeLocation(location));
+            state->bindings.emplace_back(context, std::move(AttributeLocation(location)));
         }
         state->bindings[location] = bindings[location];
     }

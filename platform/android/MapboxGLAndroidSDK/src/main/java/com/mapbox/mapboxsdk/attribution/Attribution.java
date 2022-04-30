@@ -1,6 +1,6 @@
 package com.mapbox.mapboxsdk.attribution;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,9 +9,7 @@ public class Attribution {
 
   private static final String OPENSTREETMAP = "OpenStreetMap";
   private static final String OPENSTREETMAP_ABBR = "OSM";
-  static final String TELEMETRY = "Telemetry Settings";
   static final String MAPBOX_URL = "https://www.mapbox.com/about/maps/";
-  static final String TELEMETRY_URL = "https://www.mapbox.com/telemetry/";
   static final List<String> IMPROVE_MAP_URLS = new ArrayList<>();
 
   static {

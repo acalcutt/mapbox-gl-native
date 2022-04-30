@@ -3,6 +3,7 @@
 #include <mbgl/tile/vector_tile.hpp>
 #include <mbgl/tile/vector_tile_data.hpp>
 #include <mbgl/tile/tile_loader_impl.hpp>
+#include <mbgl/storage/resource_options.hpp>
 
 #include <mbgl/util/run_loop.hpp>
 #include <mbgl/map/transform.hpp>
@@ -22,26 +23,24 @@ using namespace mbgl;
 
 class VectorTileTest {
 public:
-    std::shared_ptr<FileSource> fileSource = std::make_shared<FakeFileSource>();
+    std::shared_ptr<FileSource> fileSource = std::make_shared<FakeFileSource>(ResourceOptions::Default());
     TransformState transformState;
     util::RunLoop loop;
-    style::Style style { *fileSource, 1 };
+    style::Style style{fileSource, 1};
     AnnotationManager annotationManager { style };
     ImageManager imageManager;
     GlyphManager glyphManager;
     Tileset tileset { { "https://example.com" }, { 0, 22 }, "none" };
 
-    TileParameters tileParameters {
-        1.0,
-        MapDebugOptions(),
-        transformState,
-        fileSource,
-        MapMode::Continuous,
-        annotationManager,
-        imageManager,
-        glyphManager,
-        0
-    };
+    TileParameters tileParameters{1.0,
+                                  MapDebugOptions(),
+                                  transformState,
+                                  fileSource,
+                                  MapMode::Continuous,
+                                  annotationManager.makeWeakPtr(),
+                                  imageManager,
+                                  glyphManager,
+                                  0};
 };
 
 TEST(VectorTile, setError) {
@@ -90,6 +89,8 @@ TEST(VectorTileData, ParseResults) {
         layer->getFeature(17154u);
         ASSERT_TRUE(false) << "should throw: feature index is out of range.";
     } catch (const std::out_of_range&) {
+        ASSERT_TRUE(true);
+    } catch (...) { // needed for iOS when MBGL_WITH_RTTI=OFF
         ASSERT_TRUE(true);
     }
 

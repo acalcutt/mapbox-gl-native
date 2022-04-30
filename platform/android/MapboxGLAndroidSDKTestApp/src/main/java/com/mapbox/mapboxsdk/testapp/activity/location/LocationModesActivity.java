@@ -2,28 +2,31 @@ package com.mapbox.mapboxsdk.testapp.activity.location;
 
 import android.annotation.SuppressLint;
 import android.content.res.Configuration;
+import android.graphics.RectF;
 import android.location.Location;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.ListPopupWindow;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Toast;
 
-import com.mapbox.android.core.location.LocationEngineRequest;
-import com.mapbox.android.core.permissions.PermissionsListener;
-import com.mapbox.android.core.permissions.PermissionsManager;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.ListPopupWindow;
+
 import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions;
 import com.mapbox.mapboxsdk.location.LocationComponentOptions;
 import com.mapbox.mapboxsdk.location.OnCameraTrackingChangedListener;
 import com.mapbox.mapboxsdk.location.OnLocationCameraTransitionListener;
 import com.mapbox.mapboxsdk.location.OnLocationClickListener;
+import com.mapbox.mapboxsdk.location.engine.LocationEngineRequest;
 import com.mapbox.mapboxsdk.location.modes.CameraMode;
 import com.mapbox.mapboxsdk.location.modes.RenderMode;
+import com.mapbox.mapboxsdk.location.permissions.PermissionsListener;
+import com.mapbox.mapboxsdk.location.permissions.PermissionsManager;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
@@ -39,6 +42,7 @@ public class LocationModesActivity extends AppCompatActivity implements OnMapRea
   private MapView mapView;
   private Button locationModeBtn;
   private Button locationTrackingBtn;
+  private View protectedGestureArea;
 
   private PermissionsManager permissionsManager;
 
@@ -64,6 +68,7 @@ public class LocationModesActivity extends AppCompatActivity implements OnMapRea
     setContentView(R.layout.activity_location_layer_mode);
 
     mapView = findViewById(R.id.mapView);
+    protectedGestureArea = findViewById(R.id.view_protected_gesture_area);
 
     locationModeBtn = findViewById(R.id.button_location_mode);
     locationModeBtn.setOnClickListener(v -> {
@@ -124,11 +129,12 @@ public class LocationModesActivity extends AppCompatActivity implements OnMapRea
   public void onMapReady(@NonNull MapboxMap mapboxMap) {
     this.mapboxMap = mapboxMap;
 
-    mapboxMap.setStyle(Style.MAPBOX_STREETS, style -> {
+    mapboxMap.setStyle(Style.getPredefinedStyle("Streets"), style -> {
       locationComponent = mapboxMap.getLocationComponent();
       locationComponent.activateLocationComponent(
         LocationComponentActivationOptions
           .builder(this, style)
+          .useSpecializedLocationLayer(true)
           .useDefaultLocationEngine(true)
           .locationEngineRequest(new LocationEngineRequest.Builder(750)
             .setFastestInterval(750)
@@ -233,14 +239,21 @@ public class LocationModesActivity extends AppCompatActivity implements OnMapRea
       return;
     }
 
-    String styleUrl = Style.DARK.equals(mapboxMap.getStyle().getUri()) ? Style.LIGHT : Style.DARK;
-    mapboxMap.setStyle(new Style.Builder().fromUri(styleUrl));
+    mapboxMap.getStyle(style -> {
+      String styleUrl = Style.getPredefinedStyle("Bright").equals(style.getUri())
+        ? Style.getPredefinedStyle("Bright")
+        : Style.getPredefinedStyle("Pastel");
+      mapboxMap.setStyle(new Style.Builder().fromUri(styleUrl));
+    });
   }
 
   private void disableGesturesManagement() {
     if (locationComponent == null) {
       return;
     }
+
+    protectedGestureArea.getLayoutParams().height = 0;
+    protectedGestureArea.getLayoutParams().width = 0;
 
     LocationComponentOptions options = locationComponent
       .getLocationComponentOptions()
@@ -255,10 +268,16 @@ public class LocationModesActivity extends AppCompatActivity implements OnMapRea
       return;
     }
 
+    RectF rectF = new RectF(0f, 0f, mapView.getWidth() / 2f, mapView.getHeight() / 2f);
+    protectedGestureArea.getLayoutParams().height = (int) rectF.bottom;
+    protectedGestureArea.getLayoutParams().width = (int) rectF.right;
+
     LocationComponentOptions options = locationComponent
       .getLocationComponentOptions()
       .toBuilder()
       .trackingGesturesManagement(true)
+      .trackingMultiFingerProtectedMoveArea(rectF)
+      .trackingMultiFingerMoveThreshold(500)
       .build();
     locationComponent.applyStyle(options);
   }

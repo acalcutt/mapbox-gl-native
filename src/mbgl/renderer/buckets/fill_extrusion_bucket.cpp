@@ -6,7 +6,16 @@
 #include <mbgl/util/math.hpp>
 #include <mbgl/util/constants.hpp>
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4244)
+#endif
+
 #include <mapbox/earcut.hpp>
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include <cassert>
 
@@ -50,9 +59,12 @@ FillExtrusionBucket::FillExtrusionBucket(const FillExtrusionBucket::PossiblyEval
 
 FillExtrusionBucket::~FillExtrusionBucket() = default;
 
-void FillExtrusionBucket::addFeature(const GeometryTileFeature& feature, const GeometryCollection& geometry,
-                                     const ImagePositions& patternPositions, const PatternLayerMap& patternDependencies,
-                                     std::size_t index) {
+void FillExtrusionBucket::addFeature(const GeometryTileFeature& feature,
+                                     const GeometryCollection& geometry,
+                                     const ImagePositions& patternPositions,
+                                     const PatternLayerMap& patternDependencies,
+                                     std::size_t index,
+                                     const CanonicalTileID& canonical) {
     for (auto& polygon : classifyRings(geometry)) {
         // Optimize polygons with many interior rings for earcut tesselation.
         limitHoles(polygon, 500);
@@ -80,7 +92,7 @@ void FillExtrusionBucket::addFeature(const GeometryTileFeature& feature, const G
 
         auto& triangleSegment = triangleSegments.back();
         assert(triangleSegment.vertexLength <= std::numeric_limits<uint16_t>::max());
-        uint16_t triangleIndex = triangleSegment.vertexLength;
+        auto triangleIndex = static_cast<uint16_t>(triangleSegment.vertexLength);
 
         assert(triangleIndex + (5 * (totalVertices - 1) + 1) <=
                std::numeric_limits<uint16_t>::max());
@@ -93,11 +105,11 @@ void FillExtrusionBucket::addFeature(const GeometryTileFeature& feature, const G
 
             std::size_t edgeDistance = 0;
 
-            for (uint32_t i = 0; i < nVertices; i++) {
+            for (std::size_t i = 0; i < nVertices; i++) {
                 const auto& p1 = ring[i];
 
                 vertices.emplace_back(
-                    FillExtrusionProgram::layoutVertex(p1, 0, 0, 1, 1, edgeDistance));
+                    FillExtrusionProgram::layoutVertex(p1, 0, 0, 1, 1, static_cast<uint16_t>(edgeDistance)));
                 flatIndices.emplace_back(triangleIndex);
                 triangleIndex++;
 
@@ -114,16 +126,16 @@ void FillExtrusionBucket::addFeature(const GeometryTileFeature& feature, const G
                     }
 
                     vertices.emplace_back(
-                        FillExtrusionProgram::layoutVertex(p1, perp.x, perp.y, 0, 0, edgeDistance));
+                        FillExtrusionProgram::layoutVertex(p1, perp.x, perp.y, 0, 0, static_cast<uint16_t>(edgeDistance)));
                     vertices.emplace_back(
-                        FillExtrusionProgram::layoutVertex(p1, perp.x, perp.y, 0, 1, edgeDistance));
+                        FillExtrusionProgram::layoutVertex(p1, perp.x, perp.y, 0, 1, static_cast<uint16_t>(edgeDistance)));
 
                     edgeDistance += dist;
 
                     vertices.emplace_back(
-                        FillExtrusionProgram::layoutVertex(p2, perp.x, perp.y, 0, 0, edgeDistance));
+                        FillExtrusionProgram::layoutVertex(p2, perp.x, perp.y, 0, 0, static_cast<uint16_t>(edgeDistance)));
                     vertices.emplace_back(
-                        FillExtrusionProgram::layoutVertex(p2, perp.x, perp.y, 0, 1, edgeDistance));
+                        FillExtrusionProgram::layoutVertex(p2, perp.x, perp.y, 0, 1, static_cast<uint16_t>(edgeDistance)));
 
                     // ┌──────┐
                     // │ 0  1 │ Counter-Clockwise winding order.
@@ -144,7 +156,7 @@ void FillExtrusionBucket::addFeature(const GeometryTileFeature& feature, const G
         std::size_t nIndices = indices.size();
         assert(nIndices % 3 == 0);
 
-        for (uint32_t i = 0; i < nIndices; i += 3) {
+        for (std::size_t i = 0; i < nIndices; i += 3) {
             // Counter-Clockwise winding order.
             triangles.emplace_back(flatIndices[indices[i]], flatIndices[indices[i + 2]],
                                    flatIndices[indices[i + 1]]);
@@ -157,9 +169,10 @@ void FillExtrusionBucket::addFeature(const GeometryTileFeature& feature, const G
     for (auto& pair : paintPropertyBinders) {
         const auto it = patternDependencies.find(pair.first);
         if (it != patternDependencies.end()){
-            pair.second.populateVertexVectors(feature, vertices.elements(), index, patternPositions, it->second);
+            pair.second.populateVertexVectors(
+                feature, vertices.elements(), index, patternPositions, it->second, canonical);
         } else {
-            pair.second.populateVertexVectors(feature, vertices.elements(), index, patternPositions, {});
+            pair.second.populateVertexVectors(feature, vertices.elements(), index, patternPositions, {}, canonical);
         }
     }
 }

@@ -1,10 +1,11 @@
 package com.mapbox.mapboxsdk.testapp.activity.camera;
 
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
@@ -73,7 +74,7 @@ public class CameraAnimationTypeActivity extends AppCompatActivity implements On
   @Override
   public void onMapReady(@NonNull MapboxMap map) {
     mapboxMap = map;
-    mapboxMap.setStyle(new Style.Builder().fromUri(Style.MAPBOX_STREETS));
+    mapboxMap.setStyle(new Style.Builder().fromUri(Style.getPredefinedStyle("Streets")));
     mapboxMap.getUiSettings().setAttributionEnabled(false);
     mapboxMap.getUiSettings().setLogoEnabled(false);
     mapboxMap.addOnCameraIdleListener(cameraIdleListener);

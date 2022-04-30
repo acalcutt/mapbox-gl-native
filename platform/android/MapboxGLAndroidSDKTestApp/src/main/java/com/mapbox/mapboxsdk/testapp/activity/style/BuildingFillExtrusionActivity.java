@@ -2,9 +2,10 @@ package com.mapbox.mapboxsdk.testapp.activity.style;
 
 import android.graphics.Color;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
@@ -47,7 +48,7 @@ public class BuildingFillExtrusionActivity extends AppCompatActivity {
     mapView.onCreate(savedInstanceState);
     mapView.getMapAsync(map -> {
       mapboxMap = map;
-      mapboxMap.setStyle(Style.MAPBOX_STREETS, style -> {
+      mapboxMap.setStyle(Style.getPredefinedStyle("Streets"), style -> {
         setupBuildings(style);
         setupLight();
       });

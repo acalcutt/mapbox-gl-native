@@ -26,7 +26,7 @@ struct StillImageRequest {
     Map::StillImageCallback callback;
 };
 
-class Map::Impl : public style::Observer, public RendererObserver {
+class Map::Impl final : public style::Observer, public RendererObserver {
 public:
     Impl(RendererFrontend&, MapObserver&, std::shared_ptr<FileSource>, const MapOptions&);
     ~Impl() final;
@@ -45,7 +45,7 @@ public:
     void onDidFinishRenderingFrame(RenderMode, bool, bool) final;
     void onWillStartRenderingMap() final;
     void onDidFinishRenderingMap() final;
-    void onStyleImageMissing(const std::string&, std::function<void()>) final;
+    void onStyleImageMissing(const std::string&, const std::function<void()>&) final;
     void onRemoveUnusedStyleImages(const std::vector<std::string>&) final;
 
     // Map
@@ -75,5 +75,10 @@ public:
     bool rendererFullyLoaded;
     std::unique_ptr<StillImageRequest> stillImageRequest;
 };
+
+// Forward declaration of this method is required for the MapProjection class
+CameraOptions cameraForLatLngs(const std::vector<LatLng>& latLngs,
+                               const Transform& transform,
+                               const EdgeInsets& padding);
 
 } // namespace mbgl

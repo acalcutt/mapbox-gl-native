@@ -2,10 +2,12 @@ package com.mapbox.mapboxsdk.testapp.style;
 
 import android.graphics.Color;
 import android.graphics.PointF;
-import android.support.test.espresso.UiController;
-import android.support.test.espresso.ViewAction;
-import android.support.test.runner.AndroidJUnit4;
 import android.view.View;
+
+import androidx.test.espresso.UiController;
+import androidx.test.espresso.ViewAction;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+
 import com.mapbox.mapboxsdk.style.layers.CannotAddLayerException;
 import com.mapbox.mapboxsdk.style.layers.CircleLayer;
 import com.mapbox.mapboxsdk.style.layers.FillLayer;
@@ -20,17 +22,20 @@ import com.mapbox.mapboxsdk.style.sources.Source;
 import com.mapbox.mapboxsdk.style.sources.VectorSource;
 import com.mapbox.mapboxsdk.testapp.R;
 import com.mapbox.mapboxsdk.testapp.activity.EspressoTest;
+
 import junit.framework.Assert;
+
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import timber.log.Timber;
 
 import java.util.List;
 
-import static android.support.test.espresso.Espresso.onView;
-import static android.support.test.espresso.matcher.ViewMatchers.isDisplayed;
-import static android.support.test.espresso.matcher.ViewMatchers.withId;
+import timber.log.Timber;
+
+import static androidx.test.espresso.Espresso.onView;
+import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static com.mapbox.mapboxsdk.testapp.action.MapboxMapAction.invoke;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -179,11 +184,11 @@ public class RuntimeStyleTests extends EspressoTest {
   public void testAddRemoveSource() {
     validateTestSetup();
     invoke(mapboxMap, (uiController, mapboxMap) -> {
-      mapboxMap.getStyle().addSource(new VectorSource("my-source", "mapbox://mapbox.mapbox-terrain-v2"));
+      mapboxMap.getStyle().addSource(new VectorSource("my-source", "maptiler://sources/hillshades"));
       mapboxMap.getStyle().removeSource("my-source");
 
       // Add initial source
-      mapboxMap.getStyle().addSource(new VectorSource("my-source", "mapbox://mapbox.mapbox-terrain-v2"));
+      mapboxMap.getStyle().addSource(new VectorSource("my-source", "maptiler://sources/hillshades"));
 
       // Remove
       boolean removeOk = mapboxMap.getStyle().removeSource("my-source");
@@ -191,7 +196,7 @@ public class RuntimeStyleTests extends EspressoTest {
       assertNull(mapboxMap.getStyle().getLayer("my-source"));
 
       // Add
-      Source source = new VectorSource("my-source", "mapbox://mapbox.mapbox-terrain-v2");
+      Source source = new VectorSource("my-source", "maptiler://sources/hillshades");
       mapboxMap.getStyle().addSource(source);
 
       // Remove, preserving the reference
@@ -205,7 +210,7 @@ public class RuntimeStyleTests extends EspressoTest {
 
       // Test adding a duplicate source
       try {
-        Source source2 = new VectorSource("my-source", "mapbox://mapbox.mapbox-terrain-v2");
+        Source source2 = new VectorSource("my-source", "maptiler://sources/hillshades");
         mapboxMap.getStyle().addSource(source2);
         fail("Should not have been allowed to add a source with a duplicate id");
       } catch (CannotAddSourceException cannotAddSourceException) {
@@ -219,9 +224,9 @@ public class RuntimeStyleTests extends EspressoTest {
   public void testVectorSourceUrlGetter() {
     validateTestSetup();
     invoke(mapboxMap, (uiController, mapboxMap) -> {
-      VectorSource source = new VectorSource("my-source", "mapbox://mapbox.mapbox-terrain-v2");
+      VectorSource source = new VectorSource("my-source", "maptiler://sources/hillshades");
       mapboxMap.getStyle().addSource(source);
-      assertEquals("mapbox://mapbox.mapbox-terrain-v2", source.getUri());
+      assertEquals("maptiler://sources/hillshades", source.getUri());
     });
   }
 
@@ -229,9 +234,9 @@ public class RuntimeStyleTests extends EspressoTest {
   public void testRasterSourceUrlGetter() {
     validateTestSetup();
     invoke(mapboxMap, (uiController, mapboxMap) -> {
-      RasterSource source = new RasterSource("my-source", "mapbox://mapbox.mapbox-terrain-v2");
+      RasterSource source = new RasterSource("my-source", "maptiler://sources/hillshades");
       mapboxMap.getStyle().addSource(source);
-      assertEquals("mapbox://mapbox.mapbox-terrain-v2", source.getUri());
+      assertEquals("maptiler://sources/hillshades", source.getUri());
     });
   }
 
@@ -255,7 +260,7 @@ public class RuntimeStyleTests extends EspressoTest {
 
       @Override
       public void perform(UiController uiController, View view) {
-        mapboxMap.getStyle().addSource(new VectorSource("my-source", "mapbox://mapbox.mapbox-terrain-v2"));
+        mapboxMap.getStyle().addSource(new VectorSource("my-source", "maptiler://sources/hillshades"));
         mapboxMap.getStyle().addLayer(new LineLayer("my-layer", "my-source"));
         mapboxMap.getStyle().removeSource("my-source");
         assertNotNull(mapboxMap.getStyle().getSource("my-source"));

@@ -3,10 +3,12 @@ package com.mapbox.mapboxsdk.offline;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.annotation.IntDef;
-import android.support.annotation.Keep;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+
+import androidx.annotation.IntDef;
+import androidx.annotation.Keep;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.mapbox.mapboxsdk.LibraryLoader;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.net.ConnectivityReceiver;
@@ -391,6 +393,8 @@ public class OfflineRegion {
    * When the operation is complete or encounters an error, the given callback will be
    * executed on the main thread.
    * </p>
+   * Note that this operation can be potentially slow if packing the database
+   * occurs automatically ({@link OfflineManager#runPackDatabaseAutomatically(boolean)})
    * <p>
    * After you call this method, you may not call any additional methods on this object.
    * </p>

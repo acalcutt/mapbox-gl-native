@@ -6,6 +6,7 @@
 #include <mbgl/style/sources/vector_source.hpp>
 #include <mbgl/style/sources/vector_source_impl.hpp>
 #include <mbgl/tile/tile.hpp>
+#include <mbgl/util/async_request.hpp>
 #include <mbgl/util/constants.hpp>
 #include <mbgl/util/exception.hpp>
 #include <mbgl/util/mapbox.hpp>
@@ -50,8 +51,10 @@ void VectorSource::loadDescription(FileSource& fileSource) {
         return;
     }
 
-    const auto& url = urlOrTileset.get<std::string>();
-    req = fileSource.request(Resource::source(url), [this, url](Response res) {
+    const auto& rawURL = urlOrTileset.get<std::string>();
+    const auto& url = util::mapbox::canonicalizeSourceURL(fileSource.getResourceOptions().tileServerOptions(), rawURL);
+    
+    req = fileSource.request(Resource::source(url), [this, url, &fileSource](const Response& res) {
         if (res.error) {
             observer->onSourceError(*this, std::make_exception_ptr(std::runtime_error(res.error->message)));
         } else if (res.notModified) {
@@ -66,12 +69,13 @@ void VectorSource::loadDescription(FileSource& fileSource) {
                 return;
             }
             if (maxZoom) {
-                tileset->zoomRange.max = *maxZoom;
+                tileset->zoomRange.max = static_cast<uint8_t>(*maxZoom);
             }
             if (minZoom) {
-                tileset->zoomRange.min = *minZoom;
+                tileset->zoomRange.min = static_cast<uint8_t>(*minZoom);
             }
-            util::mapbox::canonicalizeTileset(*tileset, url, getType(), util::tileSize);
+            const TileServerOptions& tileServerOptions = fileSource.getResourceOptions().tileServerOptions();
+            util::mapbox::canonicalizeTileset(tileServerOptions, *tileset, url, getType(), util::tileSize_I);
             bool changed = impl().tileset != *tileset;
 
             baseImpl = makeMutable<Impl>(impl(), *tileset);
@@ -88,6 +92,10 @@ void VectorSource::loadDescription(FileSource& fileSource) {
 
 bool VectorSource::supportsLayerType(const mbgl::style::LayerTypeInfo* info) const {
     return mbgl::underlying_type(Tile::Kind::Geometry) == mbgl::underlying_type(info->tileKind);
+}
+
+Mutable<Source::Impl> VectorSource::createMutable() const noexcept {
+    return staticMutableCast<Source::Impl>(makeMutable<Impl>(impl()));
 }
 
 } // namespace style

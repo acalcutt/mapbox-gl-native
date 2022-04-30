@@ -61,7 +61,7 @@ void MapWindow::changeStyle()
 {
     static uint8_t currentStyleIndex;
 
-    auto& styles = QMapbox::defaultStyles();
+    auto& styles = m_map->defaultStyles();
 
     m_map->setStyleUrl(styles[currentStyleIndex].first);
     setWindowTitle(QString("Mapbox GL: ") + styles[currentStyleIndex].second);
@@ -400,9 +400,6 @@ void MapWindow::keyPressEvent(QKeyEvent *ev)
             }
         }
         break;
-    case Qt::Key_Tab:
-        m_map->cycleDebugOptions();
-        break;
     default:
         break;
     }
@@ -412,7 +409,11 @@ void MapWindow::keyPressEvent(QKeyEvent *ev)
 
 void MapWindow::mousePressEvent(QMouseEvent *ev)
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    m_lastPos = ev->position();
+#else
     m_lastPos = ev->localPos();
+#endif
 
     if (ev->type() == QEvent::MouseButtonPress) {
         if (ev->buttons() == (Qt::LeftButton | Qt::RightButton)) {
@@ -433,58 +434,67 @@ void MapWindow::mousePressEvent(QMouseEvent *ev)
 
 void MapWindow::mouseMoveEvent(QMouseEvent *ev)
 {
-    QPointF delta = ev->localPos() - m_lastPos;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    const QPointF &position = ev->position();
+#else
+    const QPointF &position = ev->localPos();
+#endif
 
+    QPointF delta = position - m_lastPos;
     if (!delta.isNull()) {
         if (ev->buttons() == Qt::LeftButton && ev->modifiers() & Qt::ShiftModifier) {
             m_map->pitchBy(delta.y());
         } else if (ev->buttons() == Qt::LeftButton) {
             m_map->moveBy(delta);
         } else if (ev->buttons() == Qt::RightButton) {
-            m_map->rotateBy(m_lastPos, ev->localPos());
+            m_map->rotateBy(m_lastPos, position);
         }
     }
 
-    m_lastPos = ev->localPos();
+    m_lastPos = position;
     ev->accept();
 }
 
 void MapWindow::wheelEvent(QWheelEvent *ev)
 {
-    if (ev->orientation() == Qt::Horizontal) {
+    if (ev->angleDelta().y() == 0) {
         return;
     }
 
-    float factor = ev->delta() / 1200.;
-    if (ev->delta() < 0) {
+    float factor = ev->angleDelta().y() / 1200.;
+    if (ev->angleDelta().y() < 0) {
         factor = factor > -1 ? factor : 1 / factor;
     }
 
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+    m_map->scaleBy(1 + factor, ev->position());
+#else
     m_map->scaleBy(1 + factor, ev->pos());
+#endif
     ev->accept();
 }
 
 void MapWindow::initializeGL()
 {
     m_map.reset(new QMapboxGL(nullptr, m_settings, size(), pixelRatio()));
-    connect(m_map.data(), SIGNAL(needsRendering()), this, SLOT(update()));
+    connect(m_map.get(), SIGNAL(needsRendering()), this, SLOT(update()));
 
     // Set default location to Helsinki.
-    m_map->setCoordinateZoom(QMapbox::Coordinate(60.170448, 24.942046), 14);
+    m_map->setCoordinateZoom(QMapbox::Coordinate(60.170448, 24.942046), 5);
 
-    QString styleUrl = qgetenv("MAPBOX_STYLE_URL");
+    QString styleUrl = qgetenv("MGL_STYLE_URL");
     if (styleUrl.isEmpty()) {
         changeStyle();
     } else {
         m_map->setStyleUrl(styleUrl);
-        setWindowTitle(QString("Mapbox GL: ") + styleUrl);
+        setWindowTitle(QString("MapLibre GL: ") + styleUrl);
     }
 
-    m_bearingAnimation = new QPropertyAnimation(m_map.data(), "bearing");
-    m_zoomAnimation = new QPropertyAnimation(m_map.data(), "zoom");
+    m_bearingAnimation = new QPropertyAnimation(m_map.get(), "bearing");
+    m_zoomAnimation = new QPropertyAnimation(m_map.get(), "zoom");
 
-    connect(m_zoomAnimation, SIGNAL(finished()), this, SLOT(animationFinished()));
-    connect(m_zoomAnimation, SIGNAL(valueChanged(const QVariant&)), this, SLOT(animationValueChanged()));
+    connect(m_zoomAnimation, &QPropertyAnimation::finished, this, &MapWindow::animationFinished);
+    connect(m_zoomAnimation, &QPropertyAnimation::valueChanged, this, &MapWindow::animationValueChanged);
 }
 
 void MapWindow::paintGL()

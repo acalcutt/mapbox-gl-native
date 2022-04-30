@@ -3,22 +3,25 @@ package com.mapbox.mapboxsdk.testapp.activity.style;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.testapp.R;
 import com.mapbox.mapboxsdk.testapp.utils.ResourceUtils;
-import timber.log.Timber;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+
+import timber.log.Timber;
 
 /**
  * Test activity showcasing how to use a file:// resource for the style.json and how to use MapboxMap#setStyleJson.
@@ -37,7 +40,7 @@ public class StyleFileActivity extends AppCompatActivity {
     mapView.onCreate(savedInstanceState);
     mapView.getMapAsync(map -> {
       mapboxMap = map;
-      mapboxMap.setStyle(Style.MAPBOX_STREETS, style -> {
+      mapboxMap.setStyle(Style.getPredefinedStyle("Streets"), style -> {
         FloatingActionButton fab = findViewById(R.id.fab_file);
         fab.setColorFilter(ContextCompat.getColor(StyleFileActivity.this, R.color.primary));
         fab.setOnClickListener(view -> new CreateStyleFileTask(view.getContext(), mapboxMap).execute());

@@ -1,7 +1,9 @@
 package com.mapbox.mapboxsdk.testapp.activity.maplayout;
 
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
+
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
@@ -24,7 +26,7 @@ public class LocalGlyphActivity extends AppCompatActivity {
     mapView = findViewById(R.id.mapView);
     mapView.onCreate(savedInstanceState);
     mapView.getMapAsync(mapboxMap -> {
-      mapboxMap.setStyle(Style.MAPBOX_STREETS);
+      mapboxMap.setStyle(Style.getPredefinedStyle("Streets"));
       // Set initial position to Suzhou
       mapboxMap.moveCamera(CameraUpdateFactory.newCameraPosition(
         new CameraPosition.Builder()

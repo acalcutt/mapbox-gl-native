@@ -45,7 +45,18 @@ std::array<double, 4> Color::toArray() const {
 }
 
 mbgl::Value Color::toObject() const {
-    return mapbox::base::ValueObject{{"r", double(r)}, {"g", double(g)}, {"b", double(b)}, {"a", double(a)}};
+    return mapbox::base::ValueObject{{"r", static_cast<double>(r)}, {"g", static_cast<double>(g)}, {"b", static_cast<double>(b)}, {"a", static_cast<double>(a)}};
+}
+
+mbgl::Value Color::serialize() const {
+    std::array<double, 4> array = toArray();
+    return std::vector<mbgl::Value>{
+        std::string("rgba"),
+        array[0],
+        array[1],
+        array[2],
+        array[3],
+    };
 }
 
 } // namespace mbgl

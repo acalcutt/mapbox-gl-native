@@ -26,7 +26,8 @@ NodeRequest::~NodeRequest() {
 
 Nan::Persistent<v8::Function> NodeRequest::constructor;
 
-void NodeRequest::Init() {
+void NodeRequest::Init(v8::Local<v8::Object> target) {
+    v8::Local<v8::Context> context = target->CreationContext();
     v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
 
     tpl->InstanceTemplate()->SetInternalFieldCount(1);
@@ -34,7 +35,7 @@ void NodeRequest::Init() {
 
     Nan::SetPrototypeMethod(tpl, "respond", HandleCallback);
 
-    constructor.Reset(tpl->GetFunction());
+    constructor.Reset(tpl->GetFunction(context).ToLocalChecked());
 }
 
 void NodeRequest::New(const Nan::FunctionCallbackInfo<v8::Value>& info) {
@@ -49,7 +50,12 @@ void NodeRequest::New(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     Nan::Set(info.This(), Nan::New("url").ToLocalChecked(), info[3]);
     Nan::Set(info.This(), Nan::New("kind").ToLocalChecked(), info[4]);
     v8::Local<v8::Value> argv[] = { info.This() };
-    request->asyncResource->runInAsyncScope(Nan::To<v8::Object>(target->handle()->GetInternalField(1)).ToLocalChecked(), "request", 1, argv);
+    request->asyncResource->runInAsyncScope(
+      Nan::To<v8::Object>(target->handle()->GetInternalField(1)).ToLocalChecked(),
+      "request",
+      1,
+      argv
+    );
     info.GetReturnValue().Set(info.This());
 }
 
@@ -60,7 +66,7 @@ void NodeRequest::HandleCallback(const Nan::FunctionCallbackInfo<v8::Value>& inf
     auto callback = std::move(request->callback);
     request->callback = {};
     if (!callback) {
-        request->unref();
+        request->unrefRequest();
         return info.GetReturnValue().SetUndefined();
     }
 
@@ -84,7 +90,7 @@ void NodeRequest::HandleCallback(const Nan::FunctionCallbackInfo<v8::Value>& inf
             *Nan::Utf8String(info[0])
         );
     } else if (info.Length() < 2 || !info[1]->IsObject()) {
-        request->unref();
+        request->unrefRequest();
         return Nan::ThrowTypeError("Second argument must be a response object");
     } else {
         auto res = Nan::To<v8::Object>(info[1]).ToLocalChecked();
@@ -118,7 +124,7 @@ void NodeRequest::HandleCallback(const Nan::FunctionCallbackInfo<v8::Value>& inf
                     node::Buffer::Length(data)
                 );
             } else {
-                request->unref();
+                request->unrefRequest();
                 return Nan::ThrowTypeError("Response data must be a Buffer");
             }
         }
@@ -126,18 +132,18 @@ void NodeRequest::HandleCallback(const Nan::FunctionCallbackInfo<v8::Value>& inf
 
     // Send the response object to the NodeFileSource object
     callback(response);
-    request->unref();
+    request->unrefRequest();
     info.GetReturnValue().SetUndefined();
 }
 
-void NodeRequest::unref() {
-  Nan::HandleScope scope;
-  delete asyncResource;
-  asyncResource = nullptr;
-  Unref();
+void NodeRequest::unrefRequest() {
+    Nan::HandleScope scope;
+    delete asyncResource;
+    asyncResource = nullptr;
+    Unref();
 }
 
-NodeAsyncRequest::NodeAsyncRequest() : request(nullptr) {}
+NodeAsyncRequest::NodeAsyncRequest() = default;
 
 NodeAsyncRequest::~NodeAsyncRequest() {
     if (request) {

@@ -1,8 +1,8 @@
 package com.mapbox.mapboxsdk.integration
 
-import android.support.test.filters.LargeTest
-import android.support.test.rule.ActivityTestRule
-import android.support.test.runner.AndroidJUnit4
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.LargeTest
+import androidx.test.rule.ActivityTestRule
 import com.mapbox.mapboxsdk.testapp.activity.maplayout.TextureRecyclerViewActivity
 import org.junit.Rule
 import org.junit.Test
@@ -14,16 +14,16 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class TextureViewReuseTest : BaseIntegrationTest() {
 
-  @get:Rule
-  var activityRule: ActivityTestRule<TextureRecyclerViewActivity> = ActivityTestRule(TextureRecyclerViewActivity::class.java)
+    @get:Rule
+    var activityRule: ActivityTestRule<TextureRecyclerViewActivity> = ActivityTestRule(TextureRecyclerViewActivity::class.java)
 
-  @Test
-  @LargeTest
-  fun scrollRecyclerView() {
-    device.waitForIdle()
-    device.scrollRecyclerViewTo("Twenty-one")
-    device.waitForIdle()
-    device.scrollRecyclerViewTo("One")
-    device.waitForIdle()
-  }
+    @Test
+    @LargeTest
+    fun scrollRecyclerView() {
+        device.waitForIdle()
+        device.scrollRecyclerViewTo("Twenty-one")
+        device.waitForIdle()
+        device.scrollRecyclerViewTo("One")
+        device.waitForIdle()
+    }
 }

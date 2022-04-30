@@ -23,13 +23,9 @@ public:
         return !(lhs == rhs);
     }
 
-    const std::array<float, 3> getCartesian() const {
-        return { { x, y, z } };
-    };
+    std::array<float, 3> getCartesian() const { return {{x, y, z}}; };
 
-    const std::array<float, 3> getSpherical() const {
-        return { { radial, azimuthal, polar } };
-    };
+    std::array<float, 3> getSpherical() const { return {{radial, azimuthal, polar}}; };
 
     void set(std::array<float, 3>& position_) {
         radial = position_[0];
@@ -56,8 +52,8 @@ private:
     void calculateCartesian() {
         // We abstract "north"/"up" (compass-wise) to be 0° when really this is 90° (π/2): we
         // correct for that here
-        const float _a = (azimuthal + 90) * util::DEG2RAD;
-        const float _p = polar * util::DEG2RAD;
+        const float _a = (azimuthal + 90) * util::DEG2RAD_F;
+        const float _p = polar * util::DEG2RAD_F;
 
         x = radial * std::cos(_a) * std::sin(_p);
         y = radial * std::sin(_a) * std::sin(_p);

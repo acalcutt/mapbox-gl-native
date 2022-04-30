@@ -5,18 +5,19 @@ import android.animation.AnimatorSet;
 import android.animation.TypeEvaluator;
 import android.animation.ValueAnimator;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.util.LongSparseArray;
-import android.support.v4.view.animation.FastOutLinearInInterpolator;
-import android.support.v4.view.animation.FastOutSlowInInterpolator;
-import android.support.v4.view.animation.PathInterpolatorCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.animation.AnticipateOvershootInterpolator;
 import android.view.animation.BounceInterpolator;
 import android.view.animation.Interpolator;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.collection.LongSparseArray;
+import androidx.core.view.animation.PathInterpolatorCompat;
+import androidx.interpolator.view.animation.FastOutLinearInInterpolator;
+import androidx.interpolator.view.animation.FastOutSlowInInterpolator;
 
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
@@ -78,7 +79,7 @@ public class CameraAnimatorActivity extends AppCompatActivity implements OnMapRe
   @Override
   public void onMapReady(@NonNull final MapboxMap map) {
     mapboxMap = map;
-    map.setStyle(Style.MAPBOX_STREETS);
+    map.setStyle(Style.getPredefinedStyle("Streets"));
     initFab();
   }
 

@@ -40,9 +40,15 @@ void identity(mat3& out) {
 }
 
 void translate(mat3& out, const mat3& a, double x, double y) {
-    double a00 = a[0], a01 = a[1], a02 = a[2],
-          a10 = a[3], a11 = a[4], a12 = a[5],
-          a20 = a[6], a21 = a[7], a22 = a[8];
+    double a00 = a[0];
+    double a01 = a[1];
+    double a02 = a[2];
+    double a10 = a[3];
+    double a11 = a[4];
+    double a12 = a[5];
+    double a20 = a[6];
+    double a21 = a[7];
+    double a22 = a[8];
 
     out[0] = a00;
     out[1] = a01;
@@ -58,17 +64,17 @@ void translate(mat3& out, const mat3& a, double x, double y) {
 }
 
 void rotate(mat3& out, const mat3& a, double rad) {
-    double s = std::sin(rad),
-          c = std::cos(rad),
-          a00 = a[0],
-          a01 = a[1],
-          a02 = a[2],
-          a10 = a[3],
-          a11 = a[4],
-          a12 = a[5],
-          a20 = a[6],
-          a21 = a[7],
-          a22 = a[8];
+    double s = std::sin(rad);
+    double c = std::cos(rad);
+    double a00 = a[0];
+    double a01 = a[1];
+    double a02 = a[2];
+    double a10 = a[3];
+    double a11 = a[4];
+    double a12 = a[5];
+    double a20 = a[6];
+    double a21 = a[7];
+    double a22 = a[8];
 
     out[0] = c * a00 + s * a10;
     out[1] = c * a01 + s * a11;
@@ -96,9 +102,9 @@ void scale(mat3& out, const mat3& a, double x, double y) {
 }
 
 void transformMat3f(vec3f& out, const vec3f& a, const mat3& m) {
-    out[0] = m[0] * a[0] + m[3] * a[1] + m[6] * a[2];
-    out[1] = m[1] * a[0] + m[4] * a[1] + m[7] * a[2];
-    out[2] = m[2] * a[0] + m[5] * a[1] + m[8] * a[2];
+    out[0] = static_cast<float>(m[0]) * a[0] + static_cast<float>(m[3]) * a[1] + static_cast<float>(m[6]) * a[2];
+    out[1] = static_cast<float>(m[1]) * a[0] + static_cast<float>(m[4]) * a[1] + static_cast<float>(m[7]) * a[2];
+    out[2] = static_cast<float>(m[2]) * a[0] + static_cast<float>(m[5]) * a[1] + static_cast<float>(m[8]) * a[2];
 }
 
 } // namespace matrix

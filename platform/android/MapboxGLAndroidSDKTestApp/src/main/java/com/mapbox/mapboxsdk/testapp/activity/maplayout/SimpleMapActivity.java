@@ -1,12 +1,15 @@
 package com.mapbox.mapboxsdk.testapp.activity.maplayout;
 
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
+
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.testapp.R;
 import com.mapbox.mapboxsdk.testapp.utils.NavUtils;
+import com.mapbox.mapboxsdk.util.DefaultStyle;
 
 /**
  * Test activity showcasing a simple MapView without any MapboxMap interaction.
@@ -21,9 +24,13 @@ public class SimpleMapActivity extends AppCompatActivity {
     setContentView(R.layout.activity_map_simple);
     mapView = findViewById(R.id.mapView);
     mapView.onCreate(savedInstanceState);
-    mapView.getMapAsync(mapboxMap -> mapboxMap.setStyle(
-      new Style.Builder().fromUri(Style.MAPBOX_STREETS)
-    ));
+    mapView.getMapAsync(mapboxMap -> {
+      DefaultStyle[] styles = Style.getPredefinedStyles();
+      if (styles != null && styles.length > 0) {
+        String styleUrl = styles[0].getUrl();
+        mapboxMap.setStyle(new Style.Builder().fromUri(styleUrl));
+      }
+    });
   }
 
   @Override

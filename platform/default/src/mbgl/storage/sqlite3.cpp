@@ -11,6 +11,11 @@
 #include <mbgl/util/logging.hpp>
 #include <mbgl/util/optional.hpp>
 
+#define MBGL_CONSTRUCTOR(f) \
+    static void f(void); \
+    struct f##_t_ { f##_t_(void) { f(); } }; static f##_t_ f##_; \
+    static void f(void)
+
 namespace mapbox {
 namespace sqlite {
 
@@ -46,9 +51,7 @@ void setTempPath(const std::string& path) {
 
 class DatabaseImpl {
 public:
-    DatabaseImpl(sqlite3* db_)
-        : db(db_)
-    {
+    explicit DatabaseImpl(sqlite3* db_) : db(db_) {
         const int error = sqlite3_extended_result_codes(db, true);
         if (error != SQLITE_OK) {
             mbgl::Log::Warning(mbgl::Event::Database, error, "Failed to enable extended result codes: %s", sqlite3_errmsg(db));
@@ -104,8 +107,7 @@ void logSqlMessage(void *, const int err, const char *msg) {
 }
 #endif
 
-__attribute__((constructor))
-static void initalize() {
+MBGL_CONSTRUCTOR(initialize) {
     if (sqlite3_libversion_number() / 1000000 != SQLITE_VERSION_NUMBER / 1000000) {
         char message[96];
         snprintf(message, 96,
@@ -134,7 +136,7 @@ mapbox::util::variant<Database, Exception> Database::tryOpen(const std::string &
 Database Database::open(const std::string &filename, int flags) {
     auto result = tryOpen(filename, flags);
     if (result.is<Exception>()) {
-        throw result.get<Exception>();
+        throw std::move(result.get<Exception>());
     } else {
         return std::move(result.get<Database>());
     }
@@ -144,10 +146,9 @@ Database::Database(std::unique_ptr<DatabaseImpl> impl_)
     : impl(std::move(impl_))
 {}
 
-Database::Database(Database &&other)
-    : impl(std::move(other.impl)) {}
+Database::Database(Database&& other) noexcept : impl(std::move(other.impl)) {}
 
-Database &Database::operator=(Database &&other) {
+Database& Database::operator=(Database&& other) noexcept {
     std::swap(impl, other.impl);
     return *this;
 }
@@ -188,6 +189,7 @@ Statement::Statement(Database& db, const char* sql)
     : impl(std::make_unique<StatementImpl>(db.impl->db, sql)) {
 }
 
+// NOLINTNEXTLINE(modernize-use-equals-default)
 Statement::~Statement() {
 #ifndef NDEBUG
     // Crash if we're destructing this object while we know a Query object references this.

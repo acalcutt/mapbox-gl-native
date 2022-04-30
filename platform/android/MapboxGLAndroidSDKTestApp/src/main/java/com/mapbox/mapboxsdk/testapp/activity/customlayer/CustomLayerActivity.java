@@ -1,11 +1,13 @@
 package com.mapbox.mapboxsdk.testapp.activity.customlayer;
 
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.maps.MapView;
@@ -39,7 +41,7 @@ public class CustomLayerActivity extends AppCompatActivity {
     mapView.getMapAsync(map -> {
       mapboxMap = map;
       mapboxMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(39.91448, -243.60947), 10));
-      mapboxMap.setStyle(Style.MAPBOX_STREETS, style -> initFab());
+      mapboxMap.setStyle(Style.getPredefinedStyle("Streets"), style -> initFab());
     });
   }
 
@@ -68,8 +70,8 @@ public class CustomLayerActivity extends AppCompatActivity {
   }
 
   private void updateLayer() {
-    if (customLayer != null) {
-      customLayer.update();
+    if (mapboxMap != null) {
+      mapboxMap.triggerRepaint();
     }
   }
 

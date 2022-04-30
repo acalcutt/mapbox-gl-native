@@ -1,11 +1,12 @@
 package com.mapbox.mapboxsdk.testapp.activity.infowindow;
 
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
@@ -64,7 +65,7 @@ public class InfoWindowActivity extends AppCompatActivity
   @Override
   public void onMapReady(@NonNull MapboxMap mapboxMap) {
     this.mapboxMap = mapboxMap;
-    mapboxMap.setStyle(Style.MAPBOX_STREETS, style -> {
+    mapboxMap.setStyle(Style.getPredefinedStyle("Streets"), style -> {
       addMarkers();
       addInfoWindowListeners();
     });

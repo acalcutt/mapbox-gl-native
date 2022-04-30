@@ -35,7 +35,7 @@ public:
 
     static optional<const JSValue*> objectMember(const JSValue* value, const char * name) {
         if (!value->HasMember(name)) {
-            return optional<const JSValue*>();
+            return {};
         }
         const JSValue* const& member = &(*value)[name];
         return {member};
@@ -65,7 +65,7 @@ public:
         if (!value->IsNumber()) {
             return {};
         }
-        return value->GetDouble();
+        return static_cast<float>(value->GetDouble());
     }
 
     static optional<double> toDouble(const JSValue* value) {

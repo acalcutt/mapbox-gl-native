@@ -2,7 +2,6 @@
 #include <mbgl/map/map_options.hpp>
 #include <mbgl/util/image.hpp>
 #include <mbgl/util/run_loop.hpp>
-#include <mbgl/util/default_styles.hpp>
 
 #include <mbgl/gfx/backend.hpp>
 #include <mbgl/gfx/headless_frontend.hpp>
@@ -19,7 +18,7 @@ int main(int argc, char *argv[]) {
     args::HelpFlag helpFlag(argumentParser, "help", "Display this help menu", {"help"});
 
     args::ValueFlag<std::string> backendValue(argumentParser, "Backend", "Rendering backend", {"backend"});
-    args::ValueFlag<std::string> tokenValue(argumentParser, "key", "Mapbox access token", {'t', "token"});
+    args::ValueFlag<std::string> apikeyValue(argumentParser, "key", "API key", {'t', "apikey"});
     args::ValueFlag<std::string> styleValue(argumentParser, "URL", "Map stylesheet", {'s', "style"});
     args::ValueFlag<std::string> outputValue(argumentParser, "file", "Output file name", {'o', "output"});
     args::ValueFlag<std::string> cacheValue(argumentParser, "file", "Cache database file name", {'c', "cache"});
@@ -53,7 +52,6 @@ int main(int argc, char *argv[]) {
         exit(2);
     }
 
-    std::string style = styleValue ? args::get(styleValue) : mbgl::util::default_styles::streets.url;
     const double lat = latValue ? args::get(latValue) : 0;
     const double lon = lonValue ? args::get(lonValue) : 0;
     const double zoom = zoomValue ? args::get(zoomValue) : 0;
@@ -67,20 +65,23 @@ int main(int argc, char *argv[]) {
     const std::string cache_file = cacheValue ? args::get(cacheValue) : "cache.sqlite";
     const std::string asset_root = assetsValue ? args::get(assetsValue) : ".";
 
-    // Try to load the token from the environment.
-    const char* tokenEnv = getenv("MAPBOX_ACCESS_TOKEN");
-    const std::string token = tokenValue ? args::get(tokenValue) : (tokenEnv ? tokenEnv : std::string());
+    // Try to load the apikey from the environment.
+    const char* apikeyEnv = getenv("MGL_API_KEY");
+    const std::string apikey = apikeyValue ? args::get(apikeyValue) : (apikeyEnv ? apikeyEnv : std::string());
 
     const bool debug = debugFlag ? args::get(debugFlag) : false;
 
     using namespace mbgl;
+
+    auto mapTilerConfiguration = mbgl::TileServerOptions::MapTilerConfiguration();
+    std::string style = styleValue ? args::get(styleValue) : mapTilerConfiguration.defaultStyles().at(0).getUrl();
 
     util::RunLoop loop;
 
     HeadlessFrontend frontend({ width, height }, pixelRatio);
     Map map(frontend, MapObserver::nullObserver(),
             MapOptions().withMapMode(MapMode::Static).withSize(frontend.getSize()).withPixelRatio(pixelRatio),
-            ResourceOptions().withCachePath(cache_file).withAssetPath(asset_root).withAccessToken(std::string(token)));
+            ResourceOptions().withCachePath(cache_file).withAssetPath(asset_root).withApiKey(apikey).withTileServerOptions(mapTilerConfiguration));
 
     if (style.find("://") == std::string::npos) {
         style = std::string("file://") + style;
@@ -99,7 +100,7 @@ int main(int argc, char *argv[]) {
 
     try {
         std::ofstream out(output, std::ios::binary);
-        out << encodePNG(frontend.render(map));
+        out << encodePNG(frontend.render(map).image);
         out.close();
     } catch(std::exception& e) {
         std::cout << "Error: " << e.what() << std::endl;

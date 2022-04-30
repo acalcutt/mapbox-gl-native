@@ -1,24 +1,27 @@
 package com.mapbox.mapboxsdk.testapp.activity;
 
 import android.content.Context;
-import android.support.annotation.CallSuper;
-import android.support.annotation.UiThread;
-import android.support.test.rule.ActivityTestRule;
-import android.support.test.rule.GrantPermissionRule;
+
+import androidx.annotation.CallSuper;
+import androidx.annotation.UiThread;
+import androidx.test.rule.ActivityTestRule;
+import androidx.test.rule.GrantPermissionRule;
 
 import com.mapbox.mapboxsdk.AppCenter;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.testapp.R;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
-import timber.log.Timber;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import timber.log.Timber;
 
 import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;

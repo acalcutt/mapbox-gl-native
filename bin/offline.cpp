@@ -1,9 +1,11 @@
-#include <mbgl/util/default_styles.hpp>
 #include <mbgl/util/run_loop.hpp>
 #include <mbgl/util/string.hpp>
 #include <mbgl/util/geojson.hpp>
 
-#include <mbgl/storage/default_file_source.hpp>
+#include <mbgl/storage/database_file_source.hpp>
+#include <mbgl/storage/file_source_manager.hpp>
+#include <mbgl/storage/resource_options.hpp>
+#include <mbgl/util/tile_server_options.hpp>
 
 #include <args.hxx>
 
@@ -78,7 +80,7 @@ int main(int argc, char *argv[]) {
     args::ArgumentParser argumentParser("Mapbox GL offline tool");
     args::HelpFlag helpFlag(argumentParser, "help", "Display this help menu", {'h', "help"});
 
-    args::ValueFlag<std::string> tokenValue(argumentParser, "key", "Mapbox access token", {'t', "token"});
+    args::ValueFlag<std::string> tokenValue(argumentParser, "key", "API Key", {'t', "token"});
     args::ValueFlag<std::string> styleValue(argumentParser, "URL", "Map stylesheet", {'s', "style"});
     args::ValueFlag<std::string> outputValue(argumentParser, "file", "Output database file name", {'o', "output"});
     args::ValueFlag<std::string> apiBaseValue(argumentParser, "URL", "API Base URL", {'a', "apiBaseURL"});
@@ -118,8 +120,11 @@ int main(int argc, char *argv[]) {
         exit(2);
     }
 
-    std::string style = styleValue ? args::get(styleValue) : mbgl::util::default_styles::streets.url;
-
+    auto mapTilerConfiguration = mbgl::TileServerOptions::MapTilerConfiguration();
+    
+    std::string style = styleValue ? args::get(styleValue) : mapTilerConfiguration.defaultStyles().at(0).getUrl();
+    std::cout << " Style: " << style << std::endl;
+    
     mbgl::optional<std::string> mergePath = {};
     if (mergePathValue) mergePath = args::get(mergePathValue);
     mbgl::optional<std::string> inputDb = {};
@@ -154,24 +159,26 @@ int main(int argc, char *argv[]) {
         }
     }();
 
-    const char* tokenEnv = getenv("MAPBOX_ACCESS_TOKEN");
-    const std::string token = tokenValue ? args::get(tokenValue) : (tokenEnv ? tokenEnv : std::string());
+    const char* apiEnv = getenv("MGL_API_KEY");
+    const std::string apiKey = tokenValue ? args::get(tokenValue) : (apiEnv ? apiEnv : std::string());
     
-    const std::string apiBaseURL = apiBaseValue ? args::get(apiBaseValue) : mbgl::util::API_BASE_URL;
-
+    if (apiBaseValue) {
+        mapTilerConfiguration.withBaseURL(args::get(apiBaseValue));
+    }
 
     util::RunLoop loop;
-    DefaultFileSource fileSource(output, ".");
+    std::shared_ptr<DatabaseFileSource> fileSource = std::static_pointer_cast<DatabaseFileSource>(
+        std::shared_ptr<FileSource>(FileSourceManager::get()->getFileSource(
+            FileSourceType::Database,
+            ResourceOptions().withApiKey(apiKey)
+              .withTileServerOptions(mapTilerConfiguration)
+              .withCachePath(output))));
+
     std::unique_ptr<OfflineRegion> region;
 
-    fileSource.setAccessToken(token);
-    fileSource.setAPIBaseURL(apiBaseURL);
-
     if (inputDb && mergePath) {
-        DefaultFileSource inputSource(*inputDb, ".");
-        inputSource.setAccessToken(token);
-        inputSource.setAPIBaseURL(apiBaseURL);
-        
+        DatabaseFileSource inputSource(ResourceOptions().withCachePath(*inputDb));
+
         int retCode = 0;
         std::cout << "Start Merge" << std::endl;
         inputSource.mergeOfflineRegions(*mergePath,  [&] (mbgl::expected<std::vector<OfflineRegion>, std::exception_ptr> result) {
@@ -193,13 +200,15 @@ int main(int argc, char *argv[]) {
 
     class Observer : public OfflineRegionObserver {
     public:
-        Observer(OfflineRegion& region_, DefaultFileSource& fileSource_, util::RunLoop& loop_, mbgl::optional<std::string> mergePath_)
+        Observer(OfflineRegion& region_,
+                 std::shared_ptr<DatabaseFileSource> fileSource_,
+                 util::RunLoop& loop_,
+                 mbgl::optional<std::string> mergePath_)
             : region(region_),
-              fileSource(fileSource_),
+              fileSource(std::move(fileSource_)),
               loop(loop_),
               mergePath(std::move(mergePath_)),
-              start(util::now()) {
-        }
+              start(util::now()) {}
 
         void statusChanged(OfflineRegionStatus status) override {
             if (status.downloadState == OfflineRegionDownloadState::Inactive) {
@@ -215,14 +224,11 @@ int main(int argc, char *argv[]) {
                 bytesPerSecond = util::toString(status.completedResourceSize / elapsedSeconds);
             }
 
-            std::cout << status.completedResourceCount << " / " << status.requiredResourceCount
-                      << " resources"
-                      << status.completedTileCount << " / " << status.requiredTileCount
-                      << "tiles"
-                      << (status.requiredResourceCountIsPrecise ? "; " : " (indeterminate); ")
+            std::cout << status.completedResourceCount << " / " << status.requiredResourceCount << " resources | "
+                      << status.completedTileCount << " / " << status.requiredTileCount << " tiles"
+                      << (status.requiredResourceCountIsPrecise ? " | " : " (indeterminate); ")
                       << status.completedResourceSize << " bytes downloaded"
-                      << " (" << bytesPerSecond << " bytes/sec)"
-                      << std::endl;
+                      << " (" << bytesPerSecond << " bytes/sec)" << std::endl;
 
             if (status.complete()) {
                 std::cout << "Finished Download" << std::endl;
@@ -239,7 +245,7 @@ int main(int argc, char *argv[]) {
         }
 
         OfflineRegion& region;
-        DefaultFileSource& fileSource;
+        std::shared_ptr<DatabaseFileSource> fileSource;
         util::RunLoop& loop;
         mbgl::optional<std::string> mergePath;
         Timestamp start;
@@ -248,24 +254,26 @@ int main(int argc, char *argv[]) {
     static auto stop = [&] {
         if (region) {
             std::cout << "Stopping download... ";
-            fileSource.setOfflineRegionDownloadState(*region, OfflineRegionDownloadState::Inactive);
+            fileSource->setOfflineRegionDownloadState(*region, OfflineRegionDownloadState::Inactive);
         }
     };
 
     std::signal(SIGINT, [] (int) { stop(); });
 
-    fileSource.createOfflineRegion(definition, metadata, [&] (mbgl::expected<OfflineRegion, std::exception_ptr> region_) {
-        if (!region_) {
-            std::cerr << "Error creating region: " << util::toString(region_.error()) << std::endl;
-            loop.stop();
-            exit(1);
-        } else {
-            assert(region_);
-            region = std::make_unique<OfflineRegion>(std::move(*region_));
-            fileSource.setOfflineRegionObserver(*region, std::make_unique<Observer>(*region, fileSource, loop, mergePath));
-            fileSource.setOfflineRegionDownloadState(*region, OfflineRegionDownloadState::Active);
-        }
-    });
+    fileSource->createOfflineRegion(
+        definition, metadata, [&](mbgl::expected<OfflineRegion, std::exception_ptr> region_) {
+            if (!region_) {
+                std::cerr << "Error creating region: " << util::toString(region_.error()) << std::endl;
+                loop.stop();
+                exit(1);
+            } else {
+                assert(region_);
+                region = std::make_unique<OfflineRegion>(std::move(*region_));
+                fileSource->setOfflineRegionObserver(*region,
+                                                     std::make_unique<Observer>(*region, fileSource, loop, mergePath));
+                fileSource->setOfflineRegionDownloadState(*region, OfflineRegionDownloadState::Active);
+            }
+        });
 
     loop.run();
     return 0;

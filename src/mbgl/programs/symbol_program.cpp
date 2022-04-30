@@ -11,7 +11,7 @@ namespace mbgl {
 
 using namespace style;
 
-static_assert(sizeof(SymbolLayoutVertex) == 16, "expected SymbolLayoutVertex size");
+static_assert(sizeof(SymbolLayoutVertex) == 24, "expected SymbolLayoutVertex size");
 
 std::unique_ptr<SymbolSizeBinder> SymbolSizeBinder::create(const float tileZoom,
                                                     const style::PropertyValue<float>& sizeProperty,
@@ -49,7 +49,7 @@ Values makeValues(const bool isText,
     std::array<float, 2> extrudeScale;
 
     if (values.pitchAlignment == AlignmentType::Map) {
-        extrudeScale.fill(tile.id.pixelsToTileUnits(1, state.getZoom()));
+        extrudeScale.fill(tile.id.pixelsToTileUnits(1.f, static_cast<float>(state.getZoom())));
     } else {
         extrudeScale = {{
             pixelsToGLUnits[0] * state.getCameraToCenterDistance(),
@@ -57,7 +57,7 @@ Values makeValues(const bool isText,
         }};
     }
 
-    const float pixelsToTileUnits = tile.id.pixelsToTileUnits(1.0, state.getZoom());
+    const float pixelsToTileUnits = tile.id.pixelsToTileUnits(1.f, static_cast<float>(state.getZoom()));
     const bool pitchWithMap = values.pitchAlignment == style::AlignmentType::Map;
     const bool rotateWithMap = values.rotationAlignment == style::AlignmentType::Map;
 
@@ -137,8 +137,8 @@ SymbolSDFProgram<Name, PaintProperties>::layoutUniformValues(const bool isText,
                                                        const float symbolFadeChange,
                                                        const SymbolSDFPart part) {
     const float gammaScale = (values.pitchAlignment == AlignmentType::Map
-                              ? std::cos(state.getPitch()) * state.getCameraToCenterDistance()
-                              : 1.0);
+                              ? static_cast<float>(std::cos(state.getPitch())) * state.getCameraToCenterDistance()
+                              : 1.0f);
 
     return makeValues<SymbolSDFProgram<Name, PaintProperties>::LayoutUniformValues>(
         isText,
@@ -154,6 +154,32 @@ SymbolSDFProgram<Name, PaintProperties>::layoutUniformValues(const bool isText,
         uniforms::device_pixel_ratio::Value( pixelRatio ),
         uniforms::is_halo::Value( part == SymbolSDFPart::Halo )
     );
+}
+
+SymbolTextAndIconProgram::LayoutUniformValues SymbolTextAndIconProgram::layoutUniformValues(
+    const bool hasVariablePacement,
+    const style::SymbolPropertyValues& values,
+    const Size& texsize,
+    const Size& texsize_icon,
+    const std::array<float, 2>& pixelsToGLUnits,
+    const float pixelRatio,
+    const bool alongLine,
+    const RenderTile& tile,
+    const TransformState& state,
+    const float symbolFadeChange,
+    const SymbolSDFPart part) {
+    return {SymbolSDFProgram<SymbolSDFTextProgram, style::TextPaintProperties>::layoutUniformValues(true,
+                                                                                                    hasVariablePacement,
+                                                                                                    values,
+                                                                                                    texsize,
+                                                                                                    pixelsToGLUnits,
+                                                                                                    pixelRatio,
+                                                                                                    alongLine,
+                                                                                                    tile,
+                                                                                                    state,
+                                                                                                    symbolFadeChange,
+                                                                                                    part)
+                .concat(gfx::UniformValues<SymbolTextAndIconProgramUniforms>(uniforms::texsize::Value(texsize_icon)))};
 }
 
 template class SymbolSDFProgram<SymbolSDFIconProgram, style::IconPaintProperties>;

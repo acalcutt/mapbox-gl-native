@@ -1,16 +1,21 @@
 package com.mapbox.mapboxsdk.style.expressions;
 
 import android.annotation.SuppressLint;
-import android.support.annotation.ColorInt;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.Size;
+
+import androidx.annotation.ColorInt;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.Size;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import com.mapbox.geojson.GeoJson;
+import com.mapbox.geojson.Polygon;
+import com.mapbox.geojson.gson.GeometryGeoJson;
 import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.layers.PropertyValue;
 
@@ -1533,6 +1538,70 @@ public class Expression {
    */
   public static Expression at(@NonNull Number number, @NonNull Expression expression) {
     return at(literal(number), expression);
+  }
+
+  /**
+   * Retrieves whether an item exists in an array or a substring exists in a string.
+   *
+   * @param needle   the item expression
+   * @param haystack the array or string expression
+   * @return true if exists.
+   * @see <a href="https://www.mapbox.com/mapbox-gl-js/style-spec/#expressions-in">Style specification</a>
+   */
+  public static Expression in(@NonNull Expression needle, @NonNull Expression haystack) {
+    return new Expression("in", needle, haystack);
+  }
+
+  /**
+   * Retrieves whether an item exists in an array or a substring exists in a string.
+   *
+   * @param needle   the item expression
+   * @param haystack the array or string expression
+   * @return true if exists.
+   * @see <a href="https://www.mapbox.com/mapbox-gl-js/style-spec/#expressions-in">Style specification</a>
+   */
+  public static Expression in(@NonNull Number needle, @NonNull Expression haystack) {
+    return new Expression("in", literal(needle), haystack);
+  }
+
+  /**
+   * Retrieves whether an item exists in an array or a substring exists in a string.
+   *
+   * @param needle   the item expression
+   * @param haystack the array or string expression
+   * @return true if exists.
+   * @see <a href="https://www.mapbox.com/mapbox-gl-js/style-spec/#expressions-in">Style specification</a>
+   */
+  public static Expression in(@NonNull String needle, @NonNull Expression haystack) {
+    return new Expression("in", literal(needle), haystack);
+  }
+
+  /**
+   * Retrieves the shortest distance between two geometries.
+   * The returned value can be consumed as an input into another expression for changing a paint or layout property
+   * or filtering features by distance.
+   * <p>
+   * Currently supports `Point`, `MultiPoint`, `LineString`, `MultiLineString` geometry types.
+   *
+   * @param geoJson the target feature geoJson.
+   *                Currently supports `Point`, `MultiPoint`, `LineString`, `MultiLineString`, `Polygon`, `MultiPolygon`
+   *                geometry types
+   * @return the distance in the unit "meters".
+   * @see <a href="https://www.mapbox.com/mapbox-gl-js/style-spec/#expressions-distance">Style specification</a>
+   */
+  public static Expression distance(@NonNull GeoJson geoJson) {
+    Map<String, Expression> map = new HashMap<>();
+    map.put("json", literal(geoJson.toJson()));
+    return new Expression("distance", new ExpressionMap(map));
+  }
+
+  public static Expression within(@NonNull Polygon polygon) {
+    Map<String, Expression> map = new HashMap<>();
+
+    map.put("type", literal(polygon.type()));
+    map.put("json", literal(polygon.toJson()));
+
+    return new Expression("within", new ExpressionMap(map));
   }
 
   /**
@@ -3150,7 +3219,7 @@ public class Expression {
    * If set, the min-fraction-digits and max-fraction-digits arguments specify the minimum and maximum number
    * of fractional digits to include.
    *
-   * @param number number expression
+   * @param number  number expression
    * @param options number formatting options
    * @return expression
    */
@@ -3169,7 +3238,7 @@ public class Expression {
    * If set, the min-fraction-digits and max-fraction-digits arguments specify the minimum and maximum number
    * of fractional digits to include.
    *
-   * @param number number expression
+   * @param number  number expression
    * @param options number formatting options
    * @return expression
    */
@@ -3407,6 +3476,49 @@ public class Expression {
    */
   public static FormatEntry formatEntry(@NonNull String text) {
     return new FormatEntry(literal(text), null);
+  }
+
+  /**
+   * Returns image expression for use in '*-pattern' and 'icon-image' layer properties. Compared to
+   * string literals that can be used to represent an image, image expression allows to determine an
+   * image's availability at runtime, thus, can be used in conditional <a href="https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-coalesce">coalesce operator</a>.
+   *
+   * <p>
+   * Example usage:
+   * </p>
+   * <pre>
+   * {@code
+   * SymbolLayer symbolLayer = new SymbolLayer("layer-id", "source-id");
+   * symbolLayer.setProperties(
+   *     iconImage(image(get("key-to-feature")))
+   * );
+   * }
+   * </pre>
+   *
+   * <p>
+   * Example usage with coalesce operator:
+   * </p>
+   * <pre>
+   * {@code
+   * SymbolLayer symbolLayer = new SymbolLayer("layer-id", "source-id");
+   * symbolLayer.setProperties(
+   *     iconImage(
+   *         coalesce(
+   *             image(literal("maki-11")),
+   *             image(literal("bicycle-15")),
+   *             image(literal("default-icon"))
+   *         )
+   *     )
+   * );
+   * }
+   * </pre>
+   *
+   * @param input expression input
+   * @return expression
+   * @see <a href="https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-types-image">Image expression</a>
+   */
+  public static Expression image(@NonNull Expression input) {
+    return new Expression("image", input);
   }
 
   /**
@@ -4430,7 +4542,7 @@ public class Expression {
     /**
      * Create an option option entry that is encapsulated as a json object member for an expression.
      *
-     * @param type json object member name
+     * @param type  json object member name
      * @param value json object member value
      */
     Option(@NonNull String type, @NonNull Expression value) {
@@ -4655,7 +4767,11 @@ public class Expression {
 
       final String operator = jsonArray.get(0).getAsString();
       final List<Expression> arguments = new ArrayList<>();
-
+      if (operator.equals("within")) {
+        return within(Polygon.fromJson(jsonArray.get(1).toString()));
+      } else if (operator.equals("distance")) {
+        return distance(GeometryGeoJson.fromJson(jsonArray.get(1).toString()));
+      }
       for (int i = 1; i < jsonArray.size(); i++) {
         JsonElement jsonElement = jsonArray.get(i);
         if (operator.equals("literal") && jsonElement instanceof JsonArray) {

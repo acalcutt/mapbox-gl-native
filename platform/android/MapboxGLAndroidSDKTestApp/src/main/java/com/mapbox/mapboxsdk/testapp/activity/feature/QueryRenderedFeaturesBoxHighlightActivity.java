@@ -3,9 +3,10 @@ package com.mapbox.mapboxsdk.testapp.activity.feature;
 import android.graphics.Color;
 import android.graphics.RectF;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.mapbox.geojson.Feature;
 import com.mapbox.geojson.FeatureCollection;
@@ -75,7 +76,7 @@ public class QueryRenderedFeaturesBoxHighlightActivity extends AppCompatActivity
       });
 
       mapboxMap.setStyle(new Style.Builder()
-        .fromUri(Style.MAPBOX_STREETS)
+        .fromUri(Style.getPredefinedStyle("Streets"))
         .withSource(source)
         .withLayer(layer)
       );

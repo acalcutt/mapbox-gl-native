@@ -2,9 +2,11 @@ package com.mapbox.mapboxsdk.testapp.activity.imagegenerator;
 
 import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.support.v4.print.PrintHelper;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.print.PrintHelper;
+
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.Style;
@@ -39,7 +41,7 @@ public class PrintActivity extends AppCompatActivity implements MapboxMap.Snapsh
 
   private void initMap(MapboxMap mapboxMap) {
     this.mapboxMap = mapboxMap;
-    mapboxMap.setStyle(Style.MAPBOX_STREETS);
+    mapboxMap.setStyle(Style.getPredefinedStyle("Streets"));
   }
 
   @Override

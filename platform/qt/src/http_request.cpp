@@ -31,7 +31,7 @@ HTTPRequest::~HTTPRequest()
 
 QUrl HTTPRequest::requestUrl() const
 {
-    return QUrl::fromPercentEncoding(QByteArray(m_resource.url.data(), m_resource.url.size()));
+    return QUrl::fromPercentEncoding(QByteArray(m_resource.url.data(), static_cast<int>(m_resource.url.size())));
 }
 
 QNetworkRequest HTTPRequest::networkRequest() const
@@ -44,7 +44,7 @@ QNetworkRequest HTTPRequest::networkRequest() const
 
     if (m_resource.priorEtag) {
         const auto etag = m_resource.priorEtag;
-        req.setRawHeader("If-None-Match", QByteArray(etag->data(), etag->size()));
+        req.setRawHeader("If-None-Match", QByteArray(etag->data(), static_cast<int>(etag->size())));
     } else if (m_resource.priorModified) {
         req.setRawHeader("If-Modified-Since", util::rfc1123(*m_resource.priorModified).c_str());
     }
@@ -92,6 +92,16 @@ void HTTPRequest::handleNetworkReply(QNetworkReply *reply, const QByteArray& dat
         } else if (header == "x-rate-limit-reset") {
             xRateLimitReset = std::string(line.second.constData(), line.second.size());
         }
+    }
+
+    if (reply->url().scheme() == QStringLiteral("data")) {
+        if (data.isEmpty()) {
+            response.data = std::make_shared<std::string>();
+        } else {
+            response.data = std::make_shared<std::string>(data.constData(), data.size());
+        }
+        callback(response);
+        return;
     }
 
     int responseCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();

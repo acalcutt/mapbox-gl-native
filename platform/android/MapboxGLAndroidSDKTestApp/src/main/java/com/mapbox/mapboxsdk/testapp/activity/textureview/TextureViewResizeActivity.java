@@ -1,12 +1,13 @@
 package com.mapbox.mapboxsdk.testapp.activity.textureview;
 
 import android.os.Bundle;
-import android.support.design.widget.CoordinatorLayout;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.Style;
@@ -43,7 +44,7 @@ public class TextureViewResizeActivity extends AppCompatActivity {
   }
 
   private void setupMap(MapboxMap mapboxMap) {
-    mapboxMap.setStyle(Style.MAPBOX_STREETS);
+    mapboxMap.setStyle(Style.getPredefinedStyle("Streets"));
   }
 
   private void setupFab() {

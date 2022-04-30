@@ -1,11 +1,12 @@
 package com.mapbox.mapboxsdk.testapp.activity.annotation;
 
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.content.res.ResourcesCompat;
-import android.support.v7.app.AppCompatActivity;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.res.ResourcesCompat;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.geometry.LatLng;
@@ -36,7 +37,7 @@ public class DynamicMarkerChangeActivity extends AppCompatActivity {
     mapView.setTag(false);
     mapView.onCreate(savedInstanceState);
     mapView.getMapAsync(mapboxMap -> {
-      mapboxMap.setStyle(Style.MAPBOX_STREETS);
+      mapboxMap.setStyle(Style.getPredefinedStyle("Streets"));
 
       DynamicMarkerChangeActivity.this.mapboxMap = mapboxMap;
       // Create marker

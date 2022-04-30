@@ -6,14 +6,17 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Environment;
-import android.support.annotation.Keep;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.UiThread;
+
+import androidx.annotation.Keep;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.UiThread;
+
 import com.mapbox.mapboxsdk.MapStrictMode;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.constants.MapboxConstants;
 import com.mapbox.mapboxsdk.log.Logger;
+import com.mapbox.mapboxsdk.util.TileServerOptions;
 import com.mapbox.mapboxsdk.utils.FileUtils;
 import com.mapbox.mapboxsdk.utils.ThreadUtils;
 
@@ -261,10 +264,10 @@ public class FileSource {
 
   /**
    * Changes the path of the resources cache database.
-   * Note that the external storage setting needs to be activated in the manifest.
    * <p>
    * The callback reference is <b>strongly kept</b> throughout the process,
    * so it needs to be wrapped in a weak reference or released on the client side if necessary.
+   * </p>
    *
    * @param context  the context of the path
    * @param path     the new database path
@@ -280,10 +283,10 @@ public class FileSource {
 
   /**
    * Changes the path of the resources cache database.
-   * Note that the external storage setting needs to be activated in the manifest.
    * <p>
    * The callback reference is <b>strongly kept</b> throughout the process,
    * so it needs to be wrapped in a weak reference or released on the client side if necessary.
+   * </p>
    *
    * @param path     the new database path
    * @param callback the callback to obtain the result
@@ -293,12 +296,7 @@ public class FileSource {
     final Context applicationContext = Mapbox.getApplicationContext();
     final FileSource fileSource = FileSource.getInstance(applicationContext);
 
-    if (fileSource.isActivated()) {
-      String fileSourceActivatedMessage = "Cannot set path, file source is activated."
-        + " Make sure that the map or a resources download is not running.";
-      Logger.w(TAG, fileSourceActivatedMessage);
-      callback.onError(fileSourceActivatedMessage);
-    } else if (path.equals(getResourcesCachePath(applicationContext))) {
+    if (path.equals(getResourcesCachePath(applicationContext))) {
       // no need to change the path
       callback.onSuccess(path);
     } else {
@@ -326,10 +324,17 @@ public class FileSource {
   private static void internalSetResourcesCachePath(@NonNull Context context, @NonNull String path,
                                                     @NonNull final ResourcesCachePathChangeCallback callback) {
     final FileSource fileSource = getInstance(context);
+    final boolean active = fileSource.isActivated();
+    if (!active) {
+      fileSource.activate();
+    }
+
     fileSource.setResourceCachePath(path, new ResourcesCachePathChangeCallback() {
       @Override
       public void onSuccess(@NonNull String path) {
-        fileSource.deactivate();
+        if (!active) {
+          fileSource.deactivate();
+        }
         resourcesCachePathLoaderLock.lock();
         resourcesCachePath = path;
         resourcesCachePathLoaderLock.unlock();
@@ -338,11 +343,12 @@ public class FileSource {
 
       @Override
       public void onError(@NonNull String message) {
-        fileSource.deactivate();
+        if (!active) {
+          fileSource.deactivate();
+        }
         callback.onError(message);
       }
     });
-    fileSource.activate();
   }
 
   private static boolean isPathWritable(String path) {
@@ -366,8 +372,12 @@ public class FileSource {
   private long nativePtr;
 
   private FileSource(String cachePath) {
-    initialize(Mapbox.getAccessToken(), cachePath);
+    TileServerOptions options = Mapbox.getTileServerOptions();
+    initialize(Mapbox.getApiKey(), cachePath, options);
   }
+
+  @Keep
+  public native void setTileServerOptions(TileServerOptions tileServerOptions);
 
   @Keep
   public native boolean isActivated();
@@ -379,14 +389,18 @@ public class FileSource {
   public native void deactivate();
 
   @Keep
-  public native void setAccessToken(String accessToken);
+  public native void setApiKey(String apiKey);
 
   @NonNull
   @Keep
-  public native String getAccessToken();
+  public native String getApiKey();
 
   @Keep
   public native void setApiBaseUrl(String baseUrl);
+
+  @NonNull
+  @Keep
+  public native String getApiBaseUrl();
 
   /**
    * Sets a callback for transforming URLs requested from the internet
@@ -403,7 +417,7 @@ public class FileSource {
   private native void setResourceCachePath(String path, ResourcesCachePathChangeCallback callback);
 
   @Keep
-  private native void initialize(String accessToken, String cachePath);
+  private native void initialize(String apiKey, String cachePath, TileServerOptions options);
 
   @Override
   @Keep

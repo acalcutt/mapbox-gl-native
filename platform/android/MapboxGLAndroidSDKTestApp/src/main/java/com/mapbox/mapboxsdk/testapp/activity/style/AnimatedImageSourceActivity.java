@@ -6,8 +6,9 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.geometry.LatLng;
@@ -57,7 +58,7 @@ public class AnimatedImageSourceActivity extends AppCompatActivity implements On
     final ImageSource imageSource = new ImageSource(ID_IMAGE_SOURCE, quad, R.drawable.southeast_radar_0);
     final RasterLayer layer = new RasterLayer(ID_IMAGE_LAYER, ID_IMAGE_SOURCE);
     map.setStyle(new Style.Builder()
-        .fromUri(Style.MAPBOX_STREETS)
+        .fromUri(Style.getPredefinedStyle("Streets"))
         .withSource(imageSource)
         .withLayer(layer), style -> {
         runnable = new RefreshImageRunnable(imageSource, handler);

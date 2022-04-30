@@ -5,11 +5,12 @@ import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.os.Build;
-import android.support.annotation.ColorInt;
-import android.support.annotation.NonNull;
-import android.support.v4.widget.ImageViewCompat;
 import android.util.TypedValue;
 import android.widget.ImageView;
+
+import androidx.annotation.ColorInt;
+import androidx.annotation.NonNull;
+import androidx.core.widget.ImageViewCompat;
 
 import com.mapbox.mapboxsdk.R;
 import com.mapbox.mapboxsdk.exceptions.ConversionException;

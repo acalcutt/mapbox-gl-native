@@ -9,7 +9,15 @@
 
 #include <iostream>
 #include <fstream>
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#include <Windows.h>
+#ifdef GetObject
+#undef GetObject
+#endif
+#else
 #include <dirent.h>
+#endif
 
 
 using namespace mbgl;
@@ -17,7 +25,7 @@ using namespace mbgl::style;
 
 TEST(Expression, IsExpression) {
     rapidjson::GenericDocument<rapidjson::UTF8<>, rapidjson::CrtAllocator> spec;
-    spec.Parse<0>(util::read_file("mapbox-gl-js/src/style-spec/reference/v8.json").c_str());
+    spec.Parse<0>(util::read_file("maplibre-gl-js/src/style-spec/reference/v8.json").c_str());
     ASSERT_FALSE(spec.HasParseError());
     ASSERT_TRUE(spec.IsObject() &&
                 spec.HasMember("expression_name") &&
@@ -79,22 +87,50 @@ TEST_P(ExpressionEqualityTest, ExpressionEquality) {
     EXPECT_TRUE(*expression_a1 != *expression_b);
 }
 
-INSTANTIATE_TEST_CASE_P(Expression, ExpressionEqualityTest, ::testing::ValuesIn([] {
-    std::vector<std::string> names;
+static void populateNames(std::vector<std::string>& names) {
     const std::string ending = ".a.json";
 
-    const std::string style_directory = "test/fixtures/expression_equality";
-    DIR *dir = opendir(style_directory.c_str());
+    std::string style_directory = "test/fixtures/expression_equality";
+
+    auto testName = [&](const std::string& name) {
+        if (name.length() >= ending.length() &&
+            name.compare(name.length() - ending.length(), ending.length(), ending) == 0) {
+            names.push_back(name.substr(0, name.length() - ending.length()));
+        }
+    };
+
+#if defined(_MSC_VER) && !defined(__clang__)
+    style_directory += "/*";
+    WIN32_FIND_DATAA ffd;
+    HANDLE hFind = FindFirstFileA(style_directory.c_str(), &ffd);
+    if (hFind != INVALID_HANDLE_VALUE) {
+        do {
+            const std::string name = ffd.cFileName;
+            testName(name);
+        } while (FindNextFileA(hFind, &ffd) != 0);
+        FindClose(hFind);
+    }
+#else
+    DIR* dir = opendir(style_directory.c_str());
     if (dir != nullptr) {
-        for (dirent *dp = nullptr; (dp = readdir(dir)) != nullptr;) {
+        for (dirent* dp = nullptr; (dp = readdir(dir)) != nullptr;) {
             const std::string name = dp->d_name;
-            if (name.length() >= ending.length() && name.compare(name.length() - ending.length(), ending.length(), ending) == 0) {
-                names.push_back(name.substr(0, name.length() - ending.length()));
+#if ANDROID
+            // Android unit test uses number-format stub implementation so skip the tests
+            if (name.find("number-format") != std::string::npos) {
+                continue;
             }
+#endif
+            testName(name);
         }
         closedir(dir);
     }
+#endif
+}
 
-    EXPECT_GT(names.size(), 0u);
-    return names;
-}()));
+INSTANTIATE_TEST_SUITE_P(Expression, ExpressionEqualityTest, ::testing::ValuesIn([] {
+                             std::vector<std::string> names;
+                             populateNames(names);
+                             EXPECT_GT(names.size(), 0u);
+                             return names;
+                         }()));

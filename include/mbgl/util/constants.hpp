@@ -11,7 +11,8 @@ namespace mbgl {
 
 namespace util {
 
-constexpr double tileSize = 512;
+constexpr double tileSize_D = 512;
+constexpr uint16_t tileSize_I = 512;
 
 /*
  * The maximum extent of a feature that can be safely stored in the buffer.
@@ -26,8 +27,10 @@ constexpr double tileSize = 512;
  */
 constexpr int32_t EXTENT = 8192;
 
-constexpr double DEG2RAD = M_PI / 180.0;
-constexpr double RAD2DEG = 180.0 / M_PI;
+constexpr double DEG2RAD_D = M_PI / 180.0;
+constexpr double RAD2DEG_D = 180.0 / M_PI;
+constexpr float DEG2RAD_F = static_cast<float>(M_PI) / 180.0F;
+constexpr float RAD2DEG_F = 180.0F / static_cast<float>(M_PI);
 constexpr double M2PI = M_PI * 2;
 constexpr double EARTH_RADIUS_M = 6378137;
 constexpr double LATITUDE_MAX = 85.051128779806604;
@@ -59,9 +62,15 @@ constexpr UnitBezier DEFAULT_TRANSITION_EASE = { 0, 0, 0.25, 1 };
 
 constexpr int DEFAULT_RATE_LIMIT_TIMEOUT = 5;
 
-constexpr const char* API_BASE_URL = "https://api.mapbox.com";
+constexpr const char* ASSET_PROTOCOL = "asset://";
+constexpr const char* FILE_PROTOCOL = "file://";
+constexpr const char* MBTILES_PROTOCOL = "mbtiles://";
+constexpr uint32_t DEFAULT_MAXIMUM_CONCURRENT_REQUESTS = 20;
 
 constexpr uint8_t TERRAIN_RGB_MAXZOOM = 15;
+
+constexpr const char* LAST_RESORT_ALPHABETIC_FONT = "Open Sans Regular";
+constexpr const char* LAST_RESORT_PAN_UNICODE_FONT = "Arial Unicode MS Regular";
 
 } // namespace util
 

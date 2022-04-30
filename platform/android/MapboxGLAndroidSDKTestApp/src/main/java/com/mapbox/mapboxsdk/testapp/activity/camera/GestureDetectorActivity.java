@@ -3,14 +3,6 @@ package com.mapbox.mapboxsdk.testapp.activity.camera;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.ColorInt;
-import android.support.annotation.IntDef;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -18,6 +10,15 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+
+import androidx.annotation.ColorInt;
+import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.mapbox.android.gestures.AndroidGesturesManager;
 import com.mapbox.android.gestures.MoveGestureDetector;
@@ -70,7 +71,7 @@ public class GestureDetectorActivity extends AppCompatActivity {
     mapView.onCreate(savedInstanceState);
     mapView.getMapAsync(mapboxMap -> {
       GestureDetectorActivity.this.mapboxMap = mapboxMap;
-      mapboxMap.setStyle(Style.MAPBOX_STREETS);
+      mapboxMap.setStyle(Style.getPredefinedStyle("Streets"));
       initializeMap();
     });
 
@@ -258,6 +259,9 @@ public class GestureDetectorActivity extends AppCompatActivity {
         return true;
       case R.id.menu_gesture_quick_zoom:
         uiSettings.setQuickZoomGesturesEnabled(!uiSettings.isQuickZoomGesturesEnabled());
+        return true;
+      case R.id.menu_gesture_scroll_horizontal:
+        uiSettings.setHorizontalScrollGesturesEnabled(!uiSettings.isHorizontalScrollGesturesEnabled());
         return true;
     }
     return super.onOptionsItemSelected(item);

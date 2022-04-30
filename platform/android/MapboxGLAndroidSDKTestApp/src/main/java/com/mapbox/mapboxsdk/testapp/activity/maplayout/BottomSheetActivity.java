@@ -2,19 +2,21 @@ package com.mapbox.mapboxsdk.testapp.activity.maplayout;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.design.widget.BottomSheetBehavior;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentTransaction;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.maps.MapView;
@@ -118,12 +120,12 @@ public class BottomSheetActivity extends AppCompatActivity {
   public static class MainMapFragment extends Fragment implements OnMapReadyCallback {
 
     private static final String[] STYLES = new String[] {
-      Style.MAPBOX_STREETS,
-      Style.SATELLITE_STREETS,
-      Style.LIGHT,
-      Style.DARK,
-      Style.SATELLITE,
-      Style.OUTDOORS
+      Style.getPredefinedStyle("Streets"),
+      Style.getPredefinedStyle("Satellite Hybrid"),
+      Style.getPredefinedStyle("Bright"),
+      Style.getPredefinedStyle("Pastel"),
+      Style.getPredefinedStyle("Satellite Hybrid"),
+      Style.getPredefinedStyle("Outdoor")
     };
 
     private MapView map;
@@ -234,7 +236,7 @@ public class BottomSheetActivity extends AppCompatActivity {
     @Override
     public void onMapReady(@NonNull MapboxMap mapboxMap) {
       mapboxMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(37.760545, -122.436055), 15));
-      mapboxMap.setStyle(Style.LIGHT);
+      mapboxMap.setStyle(Style.getPredefinedStyle("Bright"));
     }
 
     @Override

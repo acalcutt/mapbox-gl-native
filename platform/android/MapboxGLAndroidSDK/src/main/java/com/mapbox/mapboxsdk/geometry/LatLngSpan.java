@@ -2,7 +2,8 @@ package com.mapbox.mapboxsdk.geometry;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.NonNull;
+
+import androidx.annotation.NonNull;
 
 /**
  * A geographical span defined by its latitude and longitude span.

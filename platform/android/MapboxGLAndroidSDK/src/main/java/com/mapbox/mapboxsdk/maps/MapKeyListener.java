@@ -3,11 +3,12 @@ package com.mapbox.mapboxsdk.maps;
 import android.graphics.PointF;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * Manages key events on a MapView.

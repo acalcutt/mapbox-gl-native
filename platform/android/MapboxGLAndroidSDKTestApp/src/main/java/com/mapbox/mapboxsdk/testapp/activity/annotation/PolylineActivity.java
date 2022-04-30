@@ -2,11 +2,12 @@ package com.mapbox.mapboxsdk.testapp.activity.annotation;
 
 import android.graphics.Color;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.mapbox.mapboxsdk.annotations.Polyline;
 import com.mapbox.mapboxsdk.annotations.PolylineOptions;
@@ -66,7 +67,7 @@ public class PolylineActivity extends AppCompatActivity {
     mapView.onCreate(savedInstanceState);
     mapView.getMapAsync(mapboxMap -> {
       PolylineActivity.this.mapboxMap = mapboxMap;
-      mapboxMap.setStyle(Style.SATELLITE_STREETS);
+      mapboxMap.setStyle(Style.getPredefinedStyle("Satellite Hybrid"));
       mapboxMap.setOnPolylineClickListener(polyline -> Toast.makeText(
         PolylineActivity.this,
         "You clicked on polyline with id = " + polyline.getId(),

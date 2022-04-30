@@ -1,8 +1,8 @@
 package com.mapbox.mapboxsdk.integration
 
-import android.support.test.filters.LargeTest
-import android.support.test.rule.ActivityTestRule
-import android.support.test.runner.AndroidJUnit4
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.LargeTest
+import androidx.test.rule.ActivityTestRule
 import com.mapbox.mapboxsdk.testapp.activity.feature.QueryRenderedFeaturesBoxCountActivity
 import org.junit.Rule
 import org.junit.Test
@@ -14,17 +14,17 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class QueryRenderedFeaturesBoxCountTest : BaseIntegrationTest() {
 
-  @get:Rule
-  var activityRule: ActivityTestRule<QueryRenderedFeaturesBoxCountActivity> =
-    ActivityTestRule(QueryRenderedFeaturesBoxCountActivity::class.java)
+    @get:Rule
+    var activityRule: ActivityTestRule<QueryRenderedFeaturesBoxCountActivity> =
+        ActivityTestRule(QueryRenderedFeaturesBoxCountActivity::class.java)
 
-  @Test
-  @LargeTest
-  fun reopenQueryRendererFeaturesActivity() {
-    device.waitForIdle()
-    device.pressHome()
-    device.waitForIdle()
-    device.launchActivity(activityRule.activity, QueryRenderedFeaturesBoxCountActivity::class.java)
-    device.waitForIdle()
-  }
+    @Test
+    @LargeTest
+    fun reopenQueryRendererFeaturesActivity() {
+        device.waitForIdle()
+        device.pressHome()
+        device.waitForIdle()
+        device.launchActivity(activityRule.activity, QueryRenderedFeaturesBoxCountActivity::class.java)
+        device.waitForIdle()
+    }
 }

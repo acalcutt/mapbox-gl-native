@@ -32,11 +32,35 @@ public:
     HeadlessFrontend frontend { { 1000, 1000 }, 1 };
     Map map { frontend, MapObserver::nullObserver(),
               MapOptions().withMapMode(MapMode::Static).withSize(frontend.getSize()),
-              ResourceOptions().withCachePath("benchmark/fixtures/api/cache.db").withAssetPath(".").withAccessToken("foobar") };
+              ResourceOptions().withCachePath("benchmark/fixtures/api/cache.db").withAssetPath(".").withApiKey("foobar") };
     ScreenBox box{{ 0, 0 }, { 1000, 1000 }};
 };
 
 } // end namespace
+
+static void API_queryPixelsForLatLngs(::benchmark::State& state) {
+    std::vector<LatLng> points;
+    int count = 10000;
+    for (int i = 0; i < count; ++i) {
+        points.emplace_back(1, 1);
+    }
+    QueryBenchmark bench;
+    while (state.KeepRunning()) {
+        (void)bench.map.pixelsForLatLngs(points);
+    }
+}
+
+static void API_queryLatLngsForPixels(::benchmark::State& state) {
+    std::vector<ScreenCoordinate> points;
+    int count = 10000;
+    for (int i = 0; i < count; ++i) {
+        points.emplace_back(1, 1);
+    }
+    QueryBenchmark bench;
+    while (state.KeepRunning()) {
+        (void)bench.map.latLngsForPixels(points);
+    }
+}
 
 static void API_queryRenderedFeaturesAll(::benchmark::State& state) {
     QueryBenchmark bench;
@@ -61,7 +85,8 @@ static void API_queryRenderedFeaturesLayerFromHighDensity(::benchmark::State& st
         bench.frontend.getRenderer()->queryRenderedFeatures(bench.box, {{{"road-street" }}, {}});
     }
 }
-
-BENCHMARK(API_queryRenderedFeaturesAll);
+BENCHMARK(API_queryPixelsForLatLngs);
+BENCHMARK(API_queryLatLngsForPixels);
+BENCHMARK(API_queryRenderedFeaturesAll)->Iterations(50);
 BENCHMARK(API_queryRenderedFeaturesLayerFromLowDensity);
 BENCHMARK(API_queryRenderedFeaturesLayerFromHighDensity);

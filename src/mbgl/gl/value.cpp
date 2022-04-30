@@ -90,7 +90,9 @@ void StencilFunc::Set(const Type& value) {
 }
 
 StencilFunc::Type StencilFunc::Get() {
-    GLint func, ref, mask;
+    GLint func;
+    GLint ref;
+    GLint mask;
     MBGL_CHECK_ERROR(glGetIntegerv(GL_STENCIL_FUNC, &func));
     MBGL_CHECK_ERROR(glGetIntegerv(GL_STENCIL_REF, &ref));
     MBGL_CHECK_ERROR(glGetIntegerv(GL_STENCIL_VALUE_MASK, &mask));
@@ -118,7 +120,9 @@ void StencilOp::Set(const Type& value) {
 }
 
 StencilOp::Type StencilOp::Get() {
-    GLint sfail, dpfail, dppass;
+    GLint sfail;
+    GLint dpfail;
+    GLint dppass;
     MBGL_CHECK_ERROR(glGetIntegerv(GL_STENCIL_FAIL, &sfail));
     MBGL_CHECK_ERROR(glGetIntegerv(GL_STENCIL_PASS_DEPTH_FAIL, &dpfail));
     MBGL_CHECK_ERROR(glGetIntegerv(GL_STENCIL_PASS_DEPTH_PASS, &dppass));
@@ -195,7 +199,8 @@ void BlendFunc::Set(const Type& value) {
 }
 
 BlendFunc::Type BlendFunc::Get() {
-    GLint sfactor, dfactor;
+    GLint sfactor;
+    GLint dfactor;
     MBGL_CHECK_ERROR(glGetIntegerv(GL_BLEND_SRC_ALPHA, &sfactor));
     MBGL_CHECK_ERROR(glGetIntegerv(GL_BLEND_DST_ALPHA, &dfactor));
     return { Enum<gfx::ColorBlendFactorType>::from(sfactor),
@@ -484,6 +489,11 @@ GLint components(const gfx::AttributeDataType type) {
 
 } // namespace
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4312) // reinterpret_cast different size
+#endif
+
 void VertexAttribute::Set(const Type& binding, Context& context, AttributeLocation location) {
     if (binding) {
         context.vertexBuffer = reinterpret_cast<const gl::VertexBufferResource&>(*binding->vertexBufferResource).buffer;
@@ -499,6 +509,10 @@ void VertexAttribute::Set(const Type& binding, Context& context, AttributeLocati
         MBGL_CHECK_ERROR(glDisableVertexAttribArray(location));
     }
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 const constexpr PixelStorePack::Type PixelStorePack::Default;
 
@@ -528,7 +542,7 @@ PixelStoreUnpack::Type PixelStoreUnpack::Get() {
     return value;
 }
 
-#if not MBGL_USE_GLES2
+#if !MBGL_USE_GLES2
 
 const constexpr PointSize::Type PointSize::Default;
 
@@ -549,7 +563,8 @@ void PixelZoom::Set(const Type& value) {
 }
 
 PixelZoom::Type PixelZoom::Get() {
-    GLfloat xfactor, yfactor;
+    GLfloat xfactor;
+    GLfloat yfactor;
     MBGL_CHECK_ERROR(glGetFloatv(GL_ZOOM_X, &xfactor));
     MBGL_CHECK_ERROR(glGetFloatv(GL_ZOOM_Y, &yfactor));
     return { xfactor, yfactor };

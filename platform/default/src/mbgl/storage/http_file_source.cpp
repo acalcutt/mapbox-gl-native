@@ -1,4 +1,5 @@
 #include <mbgl/storage/http_file_source.hpp>
+#include <mbgl/storage/resource_options.hpp>
 #include <mbgl/storage/resource.hpp>
 #include <mbgl/storage/response.hpp>
 #include <mbgl/util/logging.hpp>
@@ -36,7 +37,7 @@ namespace mbgl {
 
 class HTTPFileSource::Impl {
 public:
-    Impl();
+    Impl(const ResourceOptions& options);
     ~Impl();
 
     static int handleSocket(CURL *handle, curl_socket_t s, int action, void *userp, void *socketp);
@@ -58,9 +59,16 @@ public:
     // CURL share handles are used for sharing session state (e.g.)
     CURLSH *share = nullptr;
 
-    // A queue that we use for storing resuable CURL easy handles to avoid creating and destroying
+    // A queue that we use for storing reusable CURL easy handles to avoid creating and destroying
     // them all the time.
     std::queue<CURL *> handles;
+
+    void setResourceOptions(ResourceOptions options);
+    ResourceOptions getResourceOptions();
+
+private:
+    mutable std::mutex resourceOptionsMutex;
+    ResourceOptions resourceOptions;
 };
 
 class HTTPRequest : public AsyncRequest {
@@ -71,8 +79,8 @@ public:
     void handleResult(CURLcode code);
 
 private:
-    static size_t headerCallback(char *const buffer, const size_t size, const size_t nmemb, void *userp);
-    static size_t writeCallback(void *const contents, const size_t size, const size_t nmemb, void *userp);
+    static size_t headerCallback(char *buffer, size_t size, size_t nmemb, void *userp);
+    static size_t writeCallback(void *contents, size_t size, size_t nmemb, void *userp);
 
     HTTPFileSource::Impl* context = nullptr;
     Resource resource;
@@ -91,7 +99,7 @@ private:
     char error[CURL_ERROR_SIZE] = { 0 };
 };
 
-HTTPFileSource::Impl::Impl() {
+HTTPFileSource::Impl::Impl(const ResourceOptions& options): resourceOptions (options.clone()) {
     if (curl_global_init(CURL_GLOBAL_ALL)) {
         throw std::runtime_error("Could not init cURL");
     }
@@ -224,6 +232,16 @@ int HTTPFileSource::Impl::startTimeout(CURLM * /* multi */, long timeout_ms, voi
     return 0;
 }
 
+void HTTPFileSource::Impl::setResourceOptions(ResourceOptions options) {
+    std::lock_guard<std::mutex> lock(resourceOptionsMutex);
+    resourceOptions = options;
+}
+
+ResourceOptions HTTPFileSource::Impl::getResourceOptions() {
+    std::lock_guard<std::mutex> lock(resourceOptionsMutex);
+    return resourceOptions.clone();
+}
+
 HTTPRequest::HTTPRequest(HTTPFileSource::Impl* context_, Resource resource_, FileSource::Callback callback_)
     : context(context_),
       resource(std::move(resource_)),
@@ -247,7 +265,6 @@ HTTPRequest::HTTPRequest(HTTPFileSource::Impl* context_, Resource resource_, Fil
 
     handleError(curl_easy_setopt(handle, CURLOPT_PRIVATE, this));
     handleError(curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, error));
-    handleError(curl_easy_setopt(handle, CURLOPT_CAINFO, "ca-bundle.crt"));
     handleError(curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1));
     handleError(curl_easy_setopt(handle, CURLOPT_URL, resource.url.c_str()));
     handleError(curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, writeCallback));
@@ -267,7 +284,10 @@ HTTPRequest::HTTPRequest(HTTPFileSource::Impl* context_, Resource resource_, Fil
 }
 
 HTTPRequest::~HTTPRequest() {
-    handleError(curl_multi_remove_handle(context->multi, handle));
+    if (curl_multi_remove_handle(context->multi, handle) != CURLM_OK) {
+        mbgl::Log::Error(mbgl::Event::HttpRequest, "Error removing curl multi handle");
+    }
+
     context->returnHandle(handle);
     handle = nullptr;
 
@@ -287,7 +307,7 @@ size_t HTTPRequest::writeCallback(void *const contents, const size_t size, const
         impl->data = std::make_shared<std::string>();
     }
 
-    impl->data->append((char *)contents, size * nmemb);
+    impl->data->append(static_cast<char *>(contents), size * nmemb);
     return size * nmemb;
 }
 
@@ -326,7 +346,7 @@ size_t HTTPRequest::headerCallback(char *const buffer, const size_t size, const 
         baton->response->etag = std::string(buffer + begin, length - begin - 2); // remove \r\n
     } else if ((begin = headerMatches("cache-control: ", buffer, length)) != std::string::npos) {
         const std::string value { buffer + begin, length - begin - 2 }; // remove \r\n
-        const auto cc = http::CacheControl::parse(value.c_str());
+        const auto cc = http::CacheControl::parse(value);
         baton->response->expires = cc.toTimePoint();
         baton->response->mustRevalidate = cc.mustRevalidate;
     } else if ((begin = headerMatches("expires: ", buffer, length)) != std::string::npos) {
@@ -404,14 +424,22 @@ void HTTPRequest::handleResult(CURLcode code) {
     callback_(response_);
 }
 
-HTTPFileSource::HTTPFileSource()
-    : impl(std::make_unique<Impl>()) {
+HTTPFileSource::HTTPFileSource(const ResourceOptions& options)
+    : impl(std::make_unique<Impl>(options)) {
 }
 
 HTTPFileSource::~HTTPFileSource() = default;
 
 std::unique_ptr<AsyncRequest> HTTPFileSource::request(const Resource& resource, Callback callback) {
     return std::make_unique<HTTPRequest>(impl.get(), resource, callback);
+}
+
+void HTTPFileSource::setResourceOptions(ResourceOptions options) {
+    impl->setResourceOptions(options.clone());
+}
+
+ResourceOptions HTTPFileSource::getResourceOptions() {
+    return impl->getResourceOptions();
 }
 
 } // namespace mbgl

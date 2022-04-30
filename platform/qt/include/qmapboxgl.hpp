@@ -11,10 +11,17 @@
 #include <QStringList>
 
 #include <functional>
+#include <memory>
 
 class QMapboxGLPrivate;
 
 // This header follows the Qt coding style: https://wiki.qt.io/Qt_Coding_Style
+
+// TODO: this will be wrapped at some point
+namespace mbgl
+{
+    class TileServerOptions;
+}
 
 class Q_MAPBOXGL_EXPORT QMapboxGLSettings
 {
@@ -42,6 +49,13 @@ public:
         FlippedYViewport
     };
 
+    enum SettingsTemplate {
+        DefaultSettings = 0,
+        MapLibreSettings,
+        MapTilerSettings,
+        MapboxSettings
+    };
+
     GLContextMode contextMode() const;
     void setContextMode(GLContextMode);
 
@@ -63,8 +77,8 @@ public:
     QString assetPath() const;
     void setAssetPath(const QString &);
 
-    QString accessToken() const;
-    void setAccessToken(const QString &);
+    QString apiKey() const;
+    void setApiKey(const QString &);
 
     QString apiBaseUrl() const;
     void setApiBaseUrl(const QString &);
@@ -75,6 +89,12 @@ public:
     std::function<std::string(const std::string &)> resourceTransform() const;
     void setResourceTransform(const std::function<std::string(const std::string &)> &);
 
+    void resetToTemplate(SettingsTemplate);
+
+    QVector<QPair<QString, QString>> defaultStyles() const;
+
+    mbgl::TileServerOptions *tileServerOptionsInternal() const;
+
 private:
     GLContextMode m_contextMode;
     MapMode m_mapMode;
@@ -84,10 +104,11 @@ private:
     unsigned m_cacheMaximumSize;
     QString m_cacheDatabasePath;
     QString m_assetPath;
-    QString m_accessToken;
-    QString m_apiBaseUrl;
+    QString m_apiKey;
     QString m_localFontFamily;
     std::function<std::string(const std::string &)> m_resourceTransform;
+
+    mbgl::TileServerOptions *m_tileServerOptionsInternal{};
 };
 
 struct Q_MAPBOXGL_EXPORT QMapboxGLCameraOptions {
@@ -152,8 +173,6 @@ public:
               const QSize& size = QSize(),
               qreal pixelRatio = 1);
     virtual ~QMapboxGL();
-
-    void cycleDebugOptions();
 
     QString styleJson() const;
     QString styleUrl() const;
@@ -220,8 +239,11 @@ public:
     QPointF pixelForCoordinate(const QMapbox::Coordinate &) const;
     QMapbox::Coordinate coordinateForPixel(const QPointF &) const;
 
-    QMapbox::CoordinateZoom coordinateZoomForBounds(const QMapbox::Coordinate &sw, QMapbox::Coordinate &ne) const;
-    QMapbox::CoordinateZoom coordinateZoomForBounds(const QMapbox::Coordinate &sw, QMapbox::Coordinate &ne, double bearing, double pitch);
+    QMapbox::CoordinateZoom coordinateZoomForBounds(const QMapbox::Coordinate &sw, const QMapbox::Coordinate &ne) const;
+    QMapbox::CoordinateZoom coordinateZoomForBounds(const QMapbox::Coordinate &sw,
+                                                    const QMapbox::Coordinate &ne,
+                                                    double bearing,
+                                                    double pitch);
 
     void setMargins(const QMargins &margins);
     QMargins margins() const;
@@ -235,8 +257,8 @@ public:
     void removeImage(const QString &name);
 
     void addCustomLayer(const QString &id,
-        QScopedPointer<QMapbox::CustomLayerHostInterface>& host,
-        const QString& before = QString());
+        std::unique_ptr<QMapbox::CustomLayerHostInterface> host,
+        const QString &before = QString());
     void addLayer(const QVariantMap &params, const QString& before = QString());
     bool layerExists(const QString &id);
     void removeLayer(const QString &id);
@@ -250,6 +272,8 @@ public:
     void createRenderer();
     void destroyRenderer();
     void setFramebufferObject(quint32 fbo, const QSize &size);
+
+    const QVector<QPair<QString, QString>> &defaultStyles() const;
 
 public slots:
     void render();

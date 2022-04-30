@@ -2,8 +2,11 @@
 
 #include <mbgl/storage/file_source.hpp>
 #include <mbgl/storage/online_file_source.hpp>
+#include <mbgl/storage/resource.hpp>
+#include <mbgl/storage/resource_options.hpp>
 #include <mbgl/util/timer.hpp>
 
+#include <map>
 #include <unordered_map>
 
 namespace mbgl {
@@ -15,11 +18,15 @@ public:
         Synchronous
     };
 
+    StubFileSource(const ResourceOptions&, ResponseType = ResponseType::Asynchronous);
     StubFileSource(ResponseType = ResponseType::Asynchronous);
     ~StubFileSource() override;
 
     std::unique_ptr<AsyncRequest> request(const Resource&, Callback) override;
+    bool canRequest(const Resource&) const override { return true; }
     void remove(AsyncRequest*);
+    void setProperty(const std::string&, const mapbox::base::Value&) override;
+    mapbox::base::Value getProperty(const std::string&) const override;
 
     using ResponseFunction = std::function<optional<Response> (const Resource&)>;
 
@@ -37,6 +44,9 @@ public:
     ResponseFunction spriteImageResponse;
     ResponseFunction imageResponse;
 
+    void setResourceOptions(ResourceOptions options) override;
+    ResourceOptions getResourceOptions() override;
+
 private:
     friend class StubOnlineFileSource;
 
@@ -46,17 +56,9 @@ private:
     std::unordered_map<AsyncRequest*, std::tuple<Resource, ResponseFunction, Callback>> pending;
     ResponseType type;
     util::Timer timer;
+    std::map<std::string, mapbox::base::Value> properties;
+
+    ResourceOptions resourceOptions;
 };
-
-class StubOnlineFileSource : public StubFileSource, public OnlineFileSource {
-public:
-
-    StubOnlineFileSource(ResponseType t = ResponseType::Asynchronous) : StubFileSource(t) {};
-    ~StubOnlineFileSource() override = default;
-
-    std::unique_ptr<AsyncRequest> request(const Resource& r, Callback c) override { return StubFileSource::request(r, c); };
-    void remove(AsyncRequest* r) { StubFileSource::remove(r); };
-};
-
 
 } // namespace mbgl

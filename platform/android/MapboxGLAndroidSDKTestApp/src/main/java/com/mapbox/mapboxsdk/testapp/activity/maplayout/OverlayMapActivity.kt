@@ -4,8 +4,9 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
+import android.os.PersistableBundle
 import android.view.View
+import androidx.appcompat.app.AppCompatActivity
 import com.mapbox.mapboxsdk.maps.Style
 import com.mapbox.mapboxsdk.testapp.R
 import kotlinx.android.synthetic.main.activity_overlay.*
@@ -21,7 +22,7 @@ class OverlayMapActivity : AppCompatActivity() {
         mapView.onCreate(savedInstanceState)
         parentView.addView(OverlayView(this))
         mapView.getMapAsync {
-            it.setStyle(Style.MAPBOX_STREETS)
+            it.setStyle(Style.getPredefinedStyle("Streets"))
         }
     }
 
@@ -55,8 +56,8 @@ class OverlayMapActivity : AppCompatActivity() {
         mapView.onDestroy()
     }
 
-    override fun onSaveInstanceState(outState: Bundle?) {
-        super.onSaveInstanceState(outState)
+    override fun onSaveInstanceState(outState: Bundle?, outPersistentState: PersistableBundle?) {
+        super.onSaveInstanceState(outState, outPersistentState)
         outState?.let {
             mapView.onSaveInstanceState(it)
         }
@@ -76,8 +77,14 @@ class OverlayMapActivity : AppCompatActivity() {
                     paint.color = Color.BLACK
                     paint.strokeWidth = 1.0f
                     paint.style = Paint.Style.FILL_AND_STROKE
-                    paint.shader = RadialGradient(width / 2.0f, height / 2.0f,
-                            height / 3.0f, Color.TRANSPARENT, Color.BLACK, Shader.TileMode.CLAMP)
+                    paint.shader = RadialGradient(
+                        width / 2.0f,
+                        height / 2.0f,
+                        height / 3.0f,
+                        Color.TRANSPARENT,
+                        Color.BLACK,
+                        Shader.TileMode.CLAMP
+                    )
                 }
                 it.drawRect(0.0f, 0.0f, width.toFloat(), height.toFloat(), paint)
             }

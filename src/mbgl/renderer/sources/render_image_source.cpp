@@ -23,46 +23,45 @@ void ImageSourceRenderData::upload(gfx::UploadPass& uploadPass) const {
     if (bucket && bucket->needsUpload()) {
         bucket->upload(uploadPass);
     }
+
+    if (!debugTexture) {
+        std::array<uint8_t, 4> data{{0, 0, 0, 0}};
+        static const PremultipliedImage emptyImage{Size(1, 1), data.data(), data.size()};
+        debugTexture = uploadPass.createTexture(emptyImage);
+    }
 }
 
 void ImageSourceRenderData::render(PaintParameters& parameters) const {
     if (!bucket || !(parameters.debugOptions & MapDebugOptions::TileBorders)) {
         return;
     }
-
+    assert(debugTexture);
     static const style::Properties<>::PossiblyEvaluated properties {};
     static const DebugProgram::Binders paintAttributeData(properties, 0);
 
     auto& programInstance = parameters.programs.debug;
 
     for (auto matrix : matrices) {
-        programInstance.draw(
-            parameters.context,
-            *parameters.renderPass,
-            gfx::LineStrip { 4.0f * parameters.pixelRatio },
-            gfx::DepthMode::disabled(),
-            gfx::StencilMode::disabled(),
-            gfx::ColorMode::unblended(),
-            gfx::CullFaceMode::disabled(),
-            *parameters.staticData.tileBorderIndexBuffer,
-            parameters.staticData.tileBorderSegments,
-            programInstance.computeAllUniformValues(
-                DebugProgram::LayoutUniformValues {
-                    uniforms::matrix::Value( matrix ),
-                    uniforms::color::Value( Color::red() )
-                },
-                paintAttributeData,
-                properties,
-                parameters.state.getZoom()
-            ),
-            programInstance.computeAllAttributeBindings(
-                *parameters.staticData.tileVertexBuffer,
-                paintAttributeData,
-                properties
-            ),
-            DebugProgram::TextureBindings{},
-            "image"
-        );
+        programInstance.draw(parameters.context,
+                             *parameters.renderPass,
+                             gfx::LineStrip{4.0f * parameters.pixelRatio},
+                             gfx::DepthMode::disabled(),
+                             gfx::StencilMode::disabled(),
+                             gfx::ColorMode::unblended(),
+                             gfx::CullFaceMode::disabled(),
+                             *parameters.staticData.tileBorderIndexBuffer,
+                             RenderStaticData::tileBorderSegments(),
+                             DebugProgram::computeAllUniformValues(
+                                 DebugProgram::LayoutUniformValues{uniforms::matrix::Value(matrix),
+                                                                   uniforms::color::Value(Color::red()),
+                                                                   uniforms::overlay_scale::Value(1.0f)},
+                                 paintAttributeData,
+                                 properties,
+                                 static_cast<float>(parameters.state.getZoom())),
+                             DebugProgram::computeAllAttributeBindings(
+                                 *parameters.staticData.tileVertexBuffer, paintAttributeData, properties),
+                             DebugProgram::TextureBindings{textures::image::Value{debugTexture->getResource()}},
+                             "image");
     }
 }
 
@@ -151,17 +150,17 @@ void RenderImageSource::update(Immutable<style::Source::Impl> baseImpl_,
    }
 
     // Calculate the optimum zoom level to determine the tile ids to use for transforms
-    auto dx = nePoint.x - swPoint.x;
-    auto dy = nePoint.y - swPoint.y;
-    auto dMax = std::max(dx, dy);
-    double zoom = std::max(0.0, std::floor(-util::log2(dMax)));
+    const auto dx = nePoint.x - swPoint.x;
+    const auto dy = nePoint.y - swPoint.y;
+    const auto dMax = std::max(dx, dy);
+    const auto zoom = static_cast<uint8_t>(std::max(0.0, std::floor(-util::log2(dMax))));
 
     // Only enable if the long side of the image is > 2 pixels. Resulting in a
     // display of at least 2 x 1 px image
     // A tile coordinate unit represents the length of one tile (tileSize) at a given zoom.
     // To convert a tile coordinate to pixels, multiply by tileSize.
     // Here dMax is in z0 tile units, so we also scale by 2^z to match current zoom.
-    enabled = dMax * std::pow(2.0, transformState.getZoom()) * util::tileSize > 2.0;
+    enabled = dMax * std::pow(2.0, transformState.getZoom()) * util::tileSize_D > 2.0;
     if (!enabled) {
         return;
     }
@@ -175,7 +174,7 @@ void RenderImageSource::update(Immutable<style::Source::Impl> baseImpl_,
 
     bool hasVisibleTile = false;
     // Add additional wrapped tile ids if neccessary
-    auto idealTiles = util::tileCover(transformState, transformState.getZoom());
+    auto idealTiles = util::tileCover(transformState, static_cast<uint8_t>(transformState.getZoom()));
     for (auto tile : idealTiles) {
         if (tile.wrap != 0 && tileCover[0].canonical.isChildOf(tile.canonical)) {
             tileIds.emplace_back(tile.wrap, tileCover[0].canonical);

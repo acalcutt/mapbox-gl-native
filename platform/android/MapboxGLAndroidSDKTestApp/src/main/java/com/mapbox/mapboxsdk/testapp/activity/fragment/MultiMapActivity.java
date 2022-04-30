@@ -1,8 +1,10 @@
 package com.mapbox.mapboxsdk.testapp.activity.fragment;
 
 import android.os.Bundle;
-import android.support.v4.app.FragmentManager;
-import android.support.v7.app.AppCompatActivity;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.FragmentManager;
+
 import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.maps.SupportMapFragment;
 import com.mapbox.mapboxsdk.testapp.R;
@@ -18,10 +20,10 @@ public class MultiMapActivity extends AppCompatActivity {
     setContentView(R.layout.activity_multi_map);
 
     FragmentManager fragmentManager = getSupportFragmentManager();
-    initFragmentStyle(fragmentManager, R.id.map1, Style.MAPBOX_STREETS);
-    initFragmentStyle(fragmentManager, R.id.map2, Style.LIGHT);
-    initFragmentStyle(fragmentManager, R.id.map3, Style.SATELLITE_STREETS);
-    initFragmentStyle(fragmentManager, R.id.map4, Style.DARK);
+    initFragmentStyle(fragmentManager, R.id.map1, Style.getPredefinedStyle("Streets"));
+    initFragmentStyle(fragmentManager, R.id.map2, Style.getPredefinedStyle("Bright"));
+    initFragmentStyle(fragmentManager, R.id.map3, Style.getPredefinedStyle("Satellite Hybrid"));
+    initFragmentStyle(fragmentManager, R.id.map4, Style.getPredefinedStyle("Pastel"));
   }
 
   private void initFragmentStyle(FragmentManager fragmentManager, int fragmentId, String styleId) {

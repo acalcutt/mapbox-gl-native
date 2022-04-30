@@ -17,6 +17,7 @@ namespace node_mbgl {
 Nan::Persistent<v8::Function> NodeExpression::constructor;
 
 void NodeExpression::Init(v8::Local<v8::Object> target) {
+    v8::Local<v8::Context> context = target->CreationContext();
     v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>(New);
     tpl->SetClassName(Nan::New("Expression").ToLocalChecked());
     tpl->InstanceTemplate()->SetInternalFieldCount(1); // what is this doing?
@@ -30,27 +31,27 @@ void NodeExpression::Init(v8::Local<v8::Object> target) {
 
     Nan::SetMethod(tpl, "parse", Parse);
 
-    constructor.Reset(tpl->GetFunction()); // what is this doing?
-    Nan::Set(target, Nan::New("Expression").ToLocalChecked(), tpl->GetFunction());
+    constructor.Reset(tpl->GetFunction(context).ToLocalChecked()); // what is this doing?
+    Nan::Set(target, Nan::New("Expression").ToLocalChecked(), tpl->GetFunction(context).ToLocalChecked());
 }
 
 type::Type parseType(v8::Local<v8::Object> type) {
-    static std::unordered_map<std::string, type::Type> types = {
-        {"string", type::String},
-        {"number", type::Number},
-        {"boolean", type::Boolean},
-        {"object", type::Object},
-        {"color", type::Color},
-        {"value", type::Value},
-        {"formatted", type::Formatted},
-        {"number-format", type::String}
-    };
+    static std::unordered_map<std::string, type::Type> types = {{"string", type::String},
+                                                                {"number", type::Number},
+                                                                {"boolean", type::Boolean},
+                                                                {"object", type::Object},
+                                                                {"color", type::Color},
+                                                                {"value", type::Value},
+                                                                {"formatted", type::Formatted},
+                                                                {"number-format", type::String},
+                                                                {"resolvedImage", type::Image}};
 
     v8::Local<v8::Value> v8kind = Nan::Get(type, Nan::New("kind").ToLocalChecked()).ToLocalChecked();
-    std::string kind(*v8::String::Utf8Value(v8kind));
+    std::string kind(*v8::String::Utf8Value(v8::Isolate::GetCurrent(), v8kind));
 
     if (kind == "array") {
-        type::Type itemType = parseType(Nan::Get(type, Nan::New("itemType").ToLocalChecked()).ToLocalChecked()->ToObject());
+        v8::Local<v8::Context> context = type->CreationContext();
+        type::Type itemType = parseType(Nan::Get(type, Nan::New("itemType").ToLocalChecked()).ToLocalChecked()->ToObject(context).ToLocalChecked());
         mbgl::optional<std::size_t> N;
 
         v8::Local<v8::String> Nkey = Nan::New("N").ToLocalChecked();
@@ -65,6 +66,7 @@ type::Type parseType(v8::Local<v8::Object> type) {
 
 void NodeExpression::Parse(const Nan::FunctionCallbackInfo<v8::Value>& info) {
     v8::Local<v8::Function> cons = Nan::New(constructor);
+    v8::Local<v8::Context> context = info.GetIsolate()->GetCurrentContext();
 
     if (info.Length() < 1 || info[0]->IsUndefined()) {
         return Nan::ThrowTypeError("Requires a JSON style expression argument.");
@@ -72,7 +74,7 @@ void NodeExpression::Parse(const Nan::FunctionCallbackInfo<v8::Value>& info) {
 
     mbgl::optional<type::Type> expected;
     if (info.Length() > 1 && info[1]->IsObject()) {
-        expected = parseType(info[1]->ToObject());
+        expected = parseType(info[1]->ToObject(context).ToLocalChecked());
     }
 
     auto success = [&cons, &info](std::unique_ptr<Expression> result) {
@@ -95,7 +97,7 @@ void NodeExpression::Parse(const Nan::FunctionCallbackInfo<v8::Value>& info) {
             Nan::Set(err,
                     Nan::New("error").ToLocalChecked(),
                     Nan::New(error.message.c_str()).ToLocalChecked());
-            Nan::Set(result, Nan::New((uint32_t)i), err);
+            Nan::Set(result, Nan::New(static_cast<uint32_t>(i)), err);
         }
         info.GetReturnValue().Set(result);
     };
@@ -158,8 +160,8 @@ struct ToValue {
     v8::Local<v8::Value> operator()(const std::vector<Value>& array) {
         Nan::EscapableHandleScope scope;
         v8::Local<v8::Array> result = Nan::New<v8::Array>();
-        for (unsigned int i = 0; i < array.size(); i++) {
-            result->Set(i, toJS(array[i]));
+        for (std::uint32_t i = 0; i < array.size(); i++) {
+            Nan::Set(result, i, toJS(array[i]));
         }
         return scope.Escape(result);
     }
@@ -171,7 +173,7 @@ struct ToValue {
         Nan::EscapableHandleScope scope;
         return scope.Escape(Nan::Null());
     }
-    
+
     v8::Local<v8::Value> operator()(const Formatted& formatted) {
         // This mimics the internal structure of the Formatted class in formatted.js
         // A better approach might be to use the explicit serialized form
@@ -222,6 +224,8 @@ struct ToValue {
 
         return scope.Escape(result);
     }
+
+    v8::Local<v8::Value> operator()(const Image& image) { return toJS(image.toValue()); }
 };
 
 v8::Local<v8::Value> toJS(const Value& value) {
@@ -229,6 +233,7 @@ v8::Local<v8::Value> toJS(const Value& value) {
 }
 
 void NodeExpression::Evaluate(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+    v8::Local<v8::Context> context = info.GetIsolate()->GetCurrentContext();
     auto* nodeExpr = ObjectWrap::Unwrap<NodeExpression>(info.Holder());
     const std::unique_ptr<Expression>& expression = nodeExpr->expression;
 
@@ -237,12 +242,12 @@ void NodeExpression::Evaluate(const Nan::FunctionCallbackInfo<v8::Value>& info) 
     }
 
     mbgl::optional<float> zoom;
-    v8::Local<v8::Value> v8zoom = Nan::Get(info[0]->ToObject(), Nan::New("zoom").ToLocalChecked()).ToLocalChecked();
-    if (v8zoom->IsNumber()) zoom = v8zoom->NumberValue();
+    v8::Local<v8::Value> v8zoom = Nan::Get(info[0]->ToObject(context).ToLocalChecked(), Nan::New("zoom").ToLocalChecked()).ToLocalChecked();
+    if (v8zoom->IsNumber()) zoom = Nan::To<double>(v8zoom).FromJust();
 
     mbgl::optional<double> heatmapDensity;
-    v8::Local<v8::Value> v8heatmapDensity = Nan::Get(info[0]->ToObject(), Nan::New("heatmapDensity").ToLocalChecked()).ToLocalChecked();
-    if (v8heatmapDensity->IsNumber()) heatmapDensity = v8heatmapDensity->NumberValue();
+    v8::Local<v8::Value> v8heatmapDensity = Nan::Get(info[0]->ToObject(context).ToLocalChecked(), Nan::New("heatmapDensity").ToLocalChecked()).ToLocalChecked();
+    if (v8heatmapDensity->IsNumber()) heatmapDensity = Nan::To<double>(v8heatmapDensity).FromJust();
 
     Nan::JSON NanJSON;
     conversion::Error conversionError;

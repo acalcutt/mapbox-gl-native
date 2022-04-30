@@ -1,9 +1,11 @@
 package com.mapbox.mapboxsdk.maps;
 
 import android.graphics.Color;
-import android.support.test.espresso.UiController;
-import android.support.test.espresso.ViewAction;
 import android.view.View;
+
+import androidx.test.espresso.UiController;
+import androidx.test.espresso.ViewAction;
+
 import com.mapbox.mapboxsdk.annotations.BaseMarkerOptions;
 import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
@@ -15,15 +17,16 @@ import com.mapbox.mapboxsdk.exceptions.InvalidMarkerPositionException;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.testapp.R;
 import com.mapbox.mapboxsdk.testapp.activity.EspressoTest;
+
 import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static android.support.test.espresso.Espresso.onView;
-import static android.support.test.espresso.matcher.ViewMatchers.isDisplayed;
-import static android.support.test.espresso.matcher.ViewMatchers.withId;
+import static androidx.test.espresso.Espresso.onView;
+import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertNotNull;
 import static org.junit.Assert.assertEquals;

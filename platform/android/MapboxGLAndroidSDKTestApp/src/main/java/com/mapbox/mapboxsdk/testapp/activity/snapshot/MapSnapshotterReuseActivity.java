@@ -1,14 +1,15 @@
 package com.mapbox.mapboxsdk.testapp.activity.snapshot;
 
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.ImageView;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.mapbox.mapboxsdk.camera.CameraPosition;
-import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.geometry.LatLngBounds;
+import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.snapshotter.MapSnapshot;
 import com.mapbox.mapboxsdk.snapshotter.MapSnapshotter;
 import com.mapbox.mapboxsdk.testapp.R;
@@ -49,7 +50,7 @@ public class MapSnapshotterReuseActivity extends AppCompatActivity implements Ma
 
     mapSnapshotter = new MapSnapshotter(
       getApplicationContext(),
-      new MapSnapshotter.Options(512, 512)
+      new MapSnapshotter.Options(512, 512).withStyleBuilder(new Style.Builder().fromUri(getRandomStyle()))
     );
 
     mapSnapshotter.start(MapSnapshotterReuseActivity.this);
@@ -80,17 +81,17 @@ public class MapSnapshotterReuseActivity extends AppCompatActivity implements Ma
   public String getRandomStyle() {
     switch (random.nextInt(5)) {
       case 0:
-        return Style.DARK;
+        return Style.getPredefinedStyle("Pastel");
       case 1:
-        return Style.LIGHT;
+        return Style.getPredefinedStyle("Bright");
       case 2:
-        return Style.MAPBOX_STREETS;
+        return Style.getPredefinedStyle("Streets");
       case 3:
-        return Style.OUTDOORS;
+        return Style.getPredefinedStyle("Outdoor");
       case 4:
-        return Style.SATELLITE_STREETS;
+        return Style.getPredefinedStyle("Satellite Hybrid");
       default:
-        return Style.TRAFFIC_DAY;
+        return Style.getPredefinedStyle("Streets");
     }
   }
 

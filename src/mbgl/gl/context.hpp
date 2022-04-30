@@ -37,11 +37,14 @@ class Debugging;
 class Context final : public gfx::Context {
 public:
     Context(RendererBackend&);
-    ~Context() override;
+    ~Context() noexcept override;
     Context(const Context&) = delete;
     Context& operator=(const Context& other) = delete;
 
     std::unique_ptr<gfx::CommandEncoder> createCommandEncoder() override;
+
+    gfx::RenderingStats& renderingStats();
+    const gfx::RenderingStats& renderingStats() const override;
 
     void initializeExtensions(const std::function<gl::ProcAddress(const char*)>&);
 
@@ -71,7 +74,7 @@ public:
         return { size, readFramebuffer(size, format, flip) };
     }
 
-#if not MBGL_USE_GLES2
+#if !MBGL_USE_GLES2
     template <typename Image>
     void drawPixels(const Image& image) {
         auto format = image.channels == 4 ? gfx::TexturePixelType::RGBA : gfx::TexturePixelType::Alpha;
@@ -91,6 +94,8 @@ public:
     void draw(const gfx::DrawMode&,
               std::size_t indexOffset,
               std::size_t indexLength);
+
+    void finish();
 
     // Actually remove the objects we marked as abandoned with the above methods.
     // Only call this while the OpenGL context is exclusive to this thread.
@@ -130,6 +135,7 @@ private:
     RendererBackend& backend;
     bool cleanupOnDestruction = true;
 
+    gfx::RenderingStats stats;
     std::unique_ptr<extension::Debugging> debugging;
     std::unique_ptr<extension::VertexArray> vertexArray;
 
@@ -143,12 +149,12 @@ public:
     State<value::BindVertexBuffer> vertexBuffer;
 
     State<value::BindVertexArray, const Context&> bindVertexArray { *this };
-    VertexArrayState globalVertexArrayState { UniqueVertexArray(0, { this }) };
+    VertexArrayState globalVertexArrayState { UniqueVertexArray(0, { const_cast<Context*>(this) }) };
 
     State<value::PixelStorePack> pixelStorePack;
     State<value::PixelStoreUnpack> pixelStoreUnpack;
 
-#if not MBGL_USE_GLES2
+#if !MBGL_USE_GLES2
     State<value::PixelZoom> pixelZoom;
     State<value::RasterPos> rasterPos;
     State<value::PixelTransferDepth> pixelTransferDepth;
@@ -177,12 +183,11 @@ private:
     State<value::CullFace> cullFace;
     State<value::CullFaceSide> cullFaceSide;
     State<value::CullFaceWinding> cullFaceWinding;
-#if not MBGL_USE_GLES2
+#if !MBGL_USE_GLES2
     State<value::PointSize> pointSize;
 #endif // MBGL_USE_GLES2
 
-    std::unique_ptr<gfx::OffscreenTexture> createOffscreenTexture(
-        Size, gfx::TextureChannelDataType = gfx::TextureChannelDataType::UnsignedByte) override;
+    std::unique_ptr<gfx::OffscreenTexture> createOffscreenTexture(Size, gfx::TextureChannelDataType) override;
 
     std::unique_ptr<gfx::TextureResource>
         createTextureResource(Size, gfx::TexturePixelType, gfx::TextureChannelDataType) override;
@@ -193,7 +198,7 @@ private:
 
     UniqueFramebuffer createFramebuffer();
     std::unique_ptr<uint8_t[]> readFramebuffer(Size, gfx::TexturePixelType, bool flip);
-#if not MBGL_USE_GLES2
+#if !MBGL_USE_GLES2
     void drawPixels(Size size, const void* data, gfx::TexturePixelType);
 #endif // MBGL_USE_GLES2
 
@@ -222,7 +227,7 @@ public:
     // For testing
     bool disableVAOExtension = false;
 
-#if not defined(NDEBUG)
+#if !defined(NDEBUG)
 public:
     void visualizeStencilBuffer() override;
     void visualizeDepthBuffer(float depthRangeSize) override;

@@ -21,7 +21,7 @@ ext.nativeBuild = { nativeTargets ->
         if (abi != 'none') {
             externalNativeBuild {
                 cmake {
-                    path "../../../CMakeLists.txt"
+                    path "../MapboxGLAndroidSDK/src/cpp/CMakeLists.txt"
                     version "3.10.2"
                 }
             }
@@ -40,14 +40,12 @@ ext.nativeBuild = { nativeTargets ->
                         arguments "-DANDROID_TOOLCHAIN=clang"
                         arguments "-DANDROID_STL=" + stl
                         arguments "-DANDROID_CPP_FEATURES=exceptions"
-                        arguments "-DMBGL_PLATFORM=android"
-                        arguments "-DMASON_PLATFORM=android"
-                        arguments "-DNodeJS_EXECUTABLE=" + node
-                        arguments "-Dnpm_EXECUTABLE=" + npm
 
                         // Enable ccache if the user has installed it.
-                        if (ccache?.trim()) {
-                            arguments "-DANDROID_CCACHE=" + ccache
+                        if (file("/usr/bin/ccache").exists()) {
+                            arguments "-DANDROID_CCACHE=/usr/bin/ccache"
+                        } else if (file("/usr/local/bin/ccache").exists()) {
+                            arguments "-DANDROID_CCACHE=/usr/local/bin/ccache"
                         }
 
                         cFlags "-Qunused-arguments"
@@ -60,7 +58,13 @@ ext.nativeBuild = { nativeTargets ->
                         if (abi != 'all') {
                             abiFilters abi.split(' ')
                         } else {
-                            abiFilters "armeabi-v7a", "x86", "arm64-v8a", "x86_64"
+                            if (project.hasProperty('android.injected.invoked.from.ide') && project.hasProperty('android.injected.build.abi')) {
+                                //Only build the target abi while running from Android studio
+                                abi = project.getProperty("android.injected.build.abi")
+                                abiFilters abi.split(',').first()
+                            } else {
+                                abiFilters "armeabi-v7a", "x86", "arm64-v8a", "x86_64"
+                            }
                         }
                     }
                 }

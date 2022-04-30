@@ -24,7 +24,7 @@ TEST(API, RecycleMapUpdateImages) {
 
     HeadlessFrontend frontend { 1 };
     auto map = std::make_unique<MapAdapter>(frontend, MapObserver::nullObserver(),
-                                         std::make_shared<StubFileSource>(),
+                                         std::make_shared<StubFileSource>(ResourceOptions::Default()),
                                          MapOptions().withMapMode(MapMode::Static).withSize(frontend.getSize()));
 
     EXPECT_TRUE(map);
@@ -39,16 +39,16 @@ TEST(API, RecycleMapUpdateImages) {
         map->getStyle().loadJSON(util::read_file("test/fixtures/api/empty.json"));
         map->getStyle().addSource(std::move(source));
         map->getStyle().addLayer(std::move(layer));
-        map->getStyle().addImage(std::make_unique<style::Image>(markerName, decodeImage(util::read_file(markerPath)), 1.0));
+        map->getStyle().addImage(std::make_unique<style::Image>(markerName, decodeImage(util::read_file(markerPath)), 1.0f));
     };
 
     // default marker
 
     loadStyle("default_marker", "test/fixtures/sprites/default_marker.png");
-    test::checkImage("test/fixtures/recycle_map/default_marker", frontend.render(*map), 0.0006, 0.1);
+    test::checkImage("test/fixtures/recycle_map/default_marker", frontend.render(*map).image, 0.0006, 0.1);
 
     // flipped marker
 
     loadStyle("flipped_marker", "test/fixtures/sprites/flipped_marker.png");
-    test::checkImage("test/fixtures/recycle_map/flipped_marker", frontend.render(*map), 0.0006, 0.1);
+    test::checkImage("test/fixtures/recycle_map/flipped_marker", frontend.render(*map).image, 0.0006, 0.1);
 }

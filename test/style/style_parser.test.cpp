@@ -13,7 +13,14 @@
 #include <fstream>
 #include <set>
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#include <Windows.h>
+#ifdef GetObject
+#undef GetObject
+#endif
+#else
 #include <dirent.h>
+#endif
 
 using namespace mbgl;
 
@@ -61,6 +68,10 @@ TEST_P(StyleParserTest, ParseStyle) {
                     js_entry[rapidjson::SizeType(3)].GetString()
                 };
 
+#if defined(WIN32)
+                Sleep(10);
+#endif
+
                 EXPECT_EQ(count, observer->count(message)) << "Message: " << message << std::endl;
             }
         }
@@ -74,25 +85,47 @@ TEST_P(StyleParserTest, ParseStyle) {
     }
 }
 
-INSTANTIATE_TEST_CASE_P(StyleParser, StyleParserTest, ::testing::ValuesIn([] {
-    std::vector<std::string> names;
+static void populateNames(std::vector<std::string>& names) {
     const std::string ending = ".info.json";
 
-    const std::string style_directory = "test/fixtures/style_parser";
+    std::string style_directory = "test/fixtures/style_parser";
+
+    auto testName = [&](const std::string& name) {
+        if (name.length() >= ending.length() &&
+            name.compare(name.length() - ending.length(), ending.length(), ending) == 0) {
+            names.push_back(name.substr(0, name.length() - ending.length()));
+        }
+    };
+
+#if defined(_MSC_VER) && !defined(__clang__)
+    style_directory += "/*";
+    WIN32_FIND_DATAA ffd;
+    HANDLE hFind = FindFirstFileA(style_directory.c_str(), &ffd);
+    if (hFind != INVALID_HANDLE_VALUE) {
+        do {
+            const std::string name = ffd.cFileName;
+            testName(name);
+        } while (FindNextFileA(hFind, &ffd) != 0);
+        FindClose(hFind);
+    }
+#else
     DIR *dir = opendir(style_directory.c_str());
     if (dir != nullptr) {
         for (dirent *dp = nullptr; (dp = readdir(dir)) != nullptr;) {
             const std::string name = dp->d_name;
-            if (name.length() >= ending.length() && name.compare(name.length() - ending.length(), ending.length(), ending) == 0) {
-                names.push_back(name.substr(0, name.length() - ending.length()));
-            }
+            testName(name);
         }
         closedir(dir);
     }
+#endif
+}
 
-    EXPECT_GT(names.size(), 0u);
-    return names;
-}()));
+INSTANTIATE_TEST_SUITE_P(StyleParser, StyleParserTest, ::testing::ValuesIn([] {
+                             std::vector<std::string> names;
+                             populateNames(names);
+                             EXPECT_GT(names.size(), 0u);
+                             return names;
+                         }()));
 
 TEST(StyleParser, FontStacks) {
     style::Parser parser;

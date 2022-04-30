@@ -1,15 +1,17 @@
 package com.mapbox.mapboxsdk.testapp.activity.maplayout;
 
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.DialogFragment;
-import android.support.v4.app.FragmentManager;
-import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.FragmentManager;
+
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.testapp.R;
@@ -57,7 +59,7 @@ public class MapInDialogActivity extends AppCompatActivity {
       super.onViewCreated(view, savedInstanceState);
       mapView = view.findViewById(R.id.mapView);
       mapView.onCreate(savedInstanceState);
-      mapView.getMapAsync(mapboxMap -> mapboxMap.setStyle(Style.OUTDOORS));
+      mapView.getMapAsync(mapboxMap -> mapboxMap.setStyle(Style.getPredefinedStyle("Outdoor")));
     }
 
     @Override

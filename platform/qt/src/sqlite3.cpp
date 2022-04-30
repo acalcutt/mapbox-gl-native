@@ -129,12 +129,12 @@ Database::Database(std::unique_ptr<DatabaseImpl> impl_)
     : impl(std::move(impl_))
 {}
 
-Database::Database(Database &&other)
+Database::Database(Database &&other) noexcept
         : impl(std::move(other.impl)) {
     assert(impl);
 }
 
-Database &Database::operator=(Database &&other) {
+Database &Database::operator=(Database &&other) noexcept {
     std::swap(impl, other.impl);
     assert(impl);
     return *this;
@@ -176,7 +176,11 @@ void Database::exec(const std::string &sql) {
 }
 
 void DatabaseImpl::exec(const std::string& sql) {
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+    QStringList statements = QString::fromStdString(sql).split(';', Qt::SkipEmptyParts);
+#else
     QStringList statements = QString::fromStdString(sql).split(';', QString::SkipEmptyParts);
+#endif
     statements.removeAll("\n");
     for (QString statement : statements) {
         if (!statement.endsWith(';')) {
@@ -236,7 +240,11 @@ template <>
 void Query::bind(int offset, std::nullptr_t) {
     assert(stmt.impl);
     // Field numbering starts at 0.
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    stmt.impl->query.bindValue(offset - 1, QVariant(), QSql::In);
+#else
     stmt.impl->query.bindValue(offset - 1, QVariant(QVariant::Invalid), QSql::In);
+#endif
     checkQueryError(stmt.impl->query);
 }
 
@@ -291,7 +299,7 @@ void Query::bind(int offset, const char* value, std::size_t length, bool /* reta
     }
 
     // Field numbering starts at 0.
-    stmt.impl->query.bindValue(offset - 1, QString(QByteArray(value, length)), QSql::In);
+    stmt.impl->query.bindValue(offset - 1, QString(QByteArray(value, static_cast<int>(length))), QSql::In);
 
     checkQueryError(stmt.impl->query);
 }
@@ -309,8 +317,8 @@ void Query::bindBlob(int offset, const void* value_, std::size_t length, bool re
     }
 
     // Field numbering starts at 0.
-    stmt.impl->query.bindValue(offset - 1, retain ? QByteArray(value, length) :
-            QByteArray::fromRawData(value, length), QSql::In | QSql::Binary);
+    stmt.impl->query.bindValue(offset - 1, retain ? QByteArray(value, static_cast<int>(length)) :
+            QByteArray::fromRawData(value, static_cast<int>(length)), QSql::In | QSql::Binary);
 
     checkQueryError(stmt.impl->query);
 }

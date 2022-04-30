@@ -2,14 +2,16 @@ package com.mapbox.mapboxsdk.testapp.activity.maplayout;
 
 import android.graphics.Color;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatActivity;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.FrameLayout;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.mapbox.mapboxsdk.annotations.PolygonOptions;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.geometry.LatLngBounds;
@@ -55,7 +57,7 @@ public class LatLngBoundsForCameraActivity extends AppCompatActivity implements 
   @Override
   public void onMapReady(@NonNull MapboxMap mapboxMap) {
     this.mapboxMap = mapboxMap;
-    mapboxMap.setStyle(Style.SATELLITE_STREETS);
+    mapboxMap.setStyle(Style.getPredefinedStyle("Satellite Hybrid"));
     mapboxMap.setMinZoomPreference(2);
     mapboxMap.getUiSettings().setFlingVelocityAnimationEnabled(false);
     showCrosshair();

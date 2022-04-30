@@ -1,8 +1,10 @@
 package com.mapbox.mapboxsdk.testapp.activity.espresso;
 
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
@@ -28,7 +30,7 @@ public class DeviceIndependentTestActivity extends AppCompatActivity implements 
   @Override
   public void onMapReady(@NonNull MapboxMap map) {
     mapboxMap = map;
-    mapboxMap.setStyle(Style.MAPBOX_STREETS);
+    mapboxMap.setStyle(Style.getPredefinedStyle("Streets"));
   }
 
   public MapboxMap getMapboxMap() {

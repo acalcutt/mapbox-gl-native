@@ -2,9 +2,10 @@ package com.mapbox.mapboxsdk.maps;
 
 import android.graphics.PointF;
 import android.os.Handler;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.annotation.UiThread;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.UiThread;
 
 import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdate;
@@ -61,6 +62,8 @@ public final class Transform implements MapView.OnCameraDidChangeListener {
     }
     setMinZoom(options.getMinZoomPreference());
     setMaxZoom(options.getMaxZoomPreference());
+    setMinPitch(options.getMinPitchPreference());
+    setMaxPitch(options.getMaxPitchPreference());
   }
 
   //
@@ -110,8 +113,8 @@ public final class Transform implements MapView.OnCameraDidChangeListener {
       cameraChangeDispatcher.onCameraMoveStarted(OnCameraMoveStartedListener.REASON_API_ANIMATION);
       nativeMap.jumpTo(cameraPosition.target, cameraPosition.zoom, cameraPosition.tilt, cameraPosition.bearing,
         cameraPosition.padding);
-      cameraChangeDispatcher.onCameraIdle();
       invalidateCameraPosition();
+      cameraChangeDispatcher.onCameraIdle();
       handler.post(new Runnable() {
         @Override
         public void run() {
@@ -337,5 +340,29 @@ public final class Transform implements MapView.OnCameraDidChangeListener {
 
   double getMaxZoom() {
     return nativeMap.getMaxZoom();
+  }
+
+  void setMinPitch(double minPitch) {
+    if ((minPitch < MapboxConstants.MINIMUM_PITCH) || (minPitch > MapboxConstants.MAXIMUM_PITCH)) {
+      Logger.e(TAG, String.format("Not setting minPitchPreference, value is in unsupported range: %s", minPitch));
+      return;
+    }
+    nativeMap.setMinPitch(minPitch);
+  }
+
+  double getMinPitch() {
+    return nativeMap.getMinPitch();
+  }
+
+  void setMaxPitch(double maxPitch) {
+    if ((maxPitch < MapboxConstants.MINIMUM_PITCH) || (maxPitch > MapboxConstants.MAXIMUM_PITCH)) {
+      Logger.e(TAG, String.format("Not setting maxPitchPreference, value is in unsupported range: %s", maxPitch));
+      return;
+    }
+    nativeMap.setMaxPitch(maxPitch);
+  }
+
+  double getMaxPitch() {
+    return nativeMap.getMaxPitch();
   }
 }

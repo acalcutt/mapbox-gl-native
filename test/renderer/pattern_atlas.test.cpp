@@ -21,8 +21,8 @@ TEST(PatternAtlas, Basic) {
     auto images = parseSprite(util::read_file("test/fixtures/annotations/emerald.png"),
                               util::read_file("test/fixtures/annotations/emerald.json"));
     for (auto& image : images) {
-        if (image->getID() == "metro") {
-            ASSERT_TRUE(patternAtlas.addPattern(*image->baseImpl));
+        if (image->id == "metro") {
+            ASSERT_TRUE(patternAtlas.addPattern(*image));
         }
     }
     auto found = patternAtlas.getPattern("metro");
@@ -47,11 +47,11 @@ TEST(PatternAtlas, Updates) {
     PremultipliedImage imageA({ 16, 12 });
     imageA.fill(255);
 
-    auto added = patternAtlas.addPattern(*makeMutable<style::Image::Impl>("one", std::move(imageA), 1));
+    auto added = patternAtlas.addPattern(*makeMutable<style::Image::Impl>("one", std::move(imageA), 1.0f));
     ASSERT_TRUE(added);
     auto found = patternAtlas.getPattern("one");
     ASSERT_TRUE(found);
-    EXPECT_EQ(added->textureRect, found->textureRect);
+    EXPECT_EQ(added->paddedRect, found->paddedRect);
 
     auto a = *found;
     EXPECT_EQ(1, a.tl()[0]);
@@ -63,7 +63,7 @@ TEST(PatternAtlas, Updates) {
     EXPECT_EQ(1.0f, a.pixelRatio);
     test::checkImage("test/fixtures/image_manager/updates_before", patternAtlas.getAtlasImageForTests());
 
-    auto imageB = makeMutable<style::Image::Impl>("one", PremultipliedImage({ 5, 5 }), 1);
+    auto imageB = makeMutable<style::Image::Impl>("one", PremultipliedImage({ 5, 5 }), 1.0f);
     EXPECT_FALSE(patternAtlas.addPattern(*imageB)); // Already added.
 
     patternAtlas.removePattern("one");

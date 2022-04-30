@@ -2,11 +2,13 @@ package com.mapbox.mapboxsdk.testapp.activity.style;
 
 import android.graphics.Color;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.content.res.ResourcesCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.res.ResourcesCompat;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.Style;
@@ -16,10 +18,11 @@ import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonOptions;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 import com.mapbox.mapboxsdk.testapp.R;
-import timber.log.Timber;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+
+import timber.log.Timber;
 
 import static com.mapbox.mapboxsdk.style.expressions.Expression.all;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.get;
@@ -72,7 +75,7 @@ public class CircleLayerActivity extends AppCompatActivity implements View.OnCli
     mapView.onCreate(savedInstanceState);
     mapView.getMapAsync(map -> {
       mapboxMap = map;
-      mapboxMap.setStyle(Style.SATELLITE_STREETS);
+      mapboxMap.setStyle(Style.getPredefinedStyle("Satellite Hybrid"));
       mapView.addOnDidFinishLoadingStyleListener(() -> {
         Style style = mapboxMap.getStyle();
         addBusStopSource(style);
@@ -98,7 +101,7 @@ public class CircleLayerActivity extends AppCompatActivity implements View.OnCli
       circleColor(Color.parseColor("#FF9800")),
       circleRadius(2.0f)
     );
-    style.addLayerBelow(layer, "waterway-label");
+    style.addLayerBelow(layer, "water_intermittent");
   }
 
   private void initFloatingActionButtons() {
@@ -273,12 +276,12 @@ public class CircleLayerActivity extends AppCompatActivity implements View.OnCli
 
   private static class Data {
     private static final String[] STYLES = new String[] {
-      Style.MAPBOX_STREETS,
-      Style.OUTDOORS,
-      Style.LIGHT,
-      Style.DARK,
-      Style.SATELLITE,
-      Style.SATELLITE_STREETS
+      Style.getPredefinedStyle("Streets"),
+      Style.getPredefinedStyle("Outdoor"),
+      Style.getPredefinedStyle("Bright"),
+      Style.getPredefinedStyle("Pastel"),
+      Style.getPredefinedStyle("Satellite Hybrid"),
+      Style.getPredefinedStyle("Satellite Hybrid")
     };
   }
 }

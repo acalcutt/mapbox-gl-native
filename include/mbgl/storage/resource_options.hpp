@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <mbgl/util/tile_server_options.hpp>
 
 namespace mbgl {
 
@@ -17,6 +18,8 @@ public:
     ~ResourceOptions();
 
     ResourceOptions(ResourceOptions&&) noexcept;
+    ResourceOptions& operator=(const ResourceOptions& options);
+    ResourceOptions& operator=(ResourceOptions&& options);
 
     ResourceOptions clone() const;
 
@@ -26,29 +29,29 @@ public:
      * @param token Mapbox access token.
      * @return ResourceOptions for chaining options together.
      */
-    ResourceOptions& withAccessToken(std::string token);
+    ResourceOptions& withApiKey(std::string token);
 
     /**
      * @brief Gets the previously set (or default) Mapbox access token.
      *
      * @return const std::string& Mapbox access token.
      */
-    const std::string& accessToken() const;
+    const std::string& apiKey() const;
 
     /**
-     * @brief Sets the API base URL. Default is https://api.mapbox.com for Mapbox.
+     * @brief Sets the tile server options..
      *
-     * @param baseURL API base URL.
+     * @param tileServerOptions Tile server options.
      * @return ResourceOptions for chaining options together.
      */
-    ResourceOptions& withBaseURL(std::string baseURL);
+    ResourceOptions& withTileServerOptions(TileServerOptions tileServerOptions);
 
     /**
-     * @brief Gets the previously set (or default) API base URL.
+     * @brief Gets the previously set (or default) TileServerOptions.
      *
-     * @return const std::string& API base URL.
+     * @return const TileServerOptions tile server options.
      */
-    const std::string& baseURL() const;
+    const TileServerOptions tileServerOptions() const;
 
     /**
      * @brief Sets the cache path.
@@ -97,21 +100,6 @@ public:
     uint64_t maximumCacheSize() const;
 
     /**
-     * @brief Sets whether to support cache-only requests.
-     *
-     * @return Whether or not cache-only requests are supported.
-     */
-    bool supportsCacheOnlyRequests() const;
-
-    /**
-     * @brief Gets the previously set (or default) support for cache-only requests.
-     *
-     * @param cacheOnly Whether or not cache-only requests are supported.
-     * @return reference to ResourceOptions for chaining options together.
-     */
-    ResourceOptions& withCacheOnlyRequestsSupport(bool cacheOnly);
-
-    /**
      * @brief Sets the platform context. A platform context is usually an object
      * that assists the creation of a file source.
      *
@@ -126,6 +114,13 @@ public:
      * @return Platform context.
      */
     void* platformContext() const;
+
+    /**
+     * @brief Returns default resource options.
+     *
+     * @return Resource options.
+     */
+    static ResourceOptions Default();
 
 private:
     ResourceOptions(const ResourceOptions&);

@@ -1,8 +1,9 @@
 package com.mapbox.mapboxsdk.maps.renderer.textureview;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
 import android.view.TextureView;
+
+import androidx.annotation.NonNull;
 
 import com.mapbox.mapboxsdk.maps.renderer.MapRenderer;
 

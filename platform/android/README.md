@@ -1,10 +1,11 @@
 # [Mapbox Maps SDK for Android](https://www.mapbox.com/android-sdk/)
 
-[![Circle CI build status](https://circleci.com/gh/mapbox/mapbox-gl-native.svg?style=shield)](https://circleci.com/gh/mapbox/workflows/mapbox-gl-native/tree/master)
+[![Circle CI build status](https://circleci.com/gh/mapbox/mapbox-gl-native-android/tree/master.svg?style=shield)](https://circleci.com/gh/mapbox/mapbox-gl-native-android/tree/master)
+
 
 [![](https://www.mapbox.com/android-docs/assets/overview-map-sdk-322-9abe118316efb5910b6101e222a2e57c.png)](https://docs.mapbox.com/android/maps/overview/)
 
-The Mapbox Maps SDK for Android is a library based on [Mapbox GL Native](../../README.md) for embedding interactive map views with scalable, customizable vector maps onto Android devices.
+The Mapbox Maps SDK for Android is a library based on [Mapbox GL Native](https://github.com/mapbox/mapbox-gl-native/) for embedding interactive map views with scalable, customizable vector maps onto Android devices.
 
 ## Getting Started
 
@@ -22,10 +23,11 @@ These instructions are for developers interested in making code-level contributi
 
 #### Getting the source
 
-Clone the git repository
+Clone the git repository and pull in submodules:
 
 ```bash
-git clone git@github.com:mapbox/mapbox-gl-native.git && cd mapbox-gl-native
+git clone git@github.com:mapbox/mapbox-gl-native-android.git && cd mapbox-gl-native-android
+git submodule update --init --recursive
 ```
 
 #### Installing dependencies
@@ -64,7 +66,7 @@ make aproj
 
 #### linux
 
-run `make android-configuration` in the root folder of the project and open the Android Studio project in `/platform/android`.
+run `make android-configuration` in the root folder of the project and open in Android Studio.
 
 If you are using Arch Linux, install [ncurses5-compat-libs](https://aur.archlinux.org/packages/ncurses5-compat-libs).
 
@@ -73,32 +75,32 @@ If you are using Arch Linux, install [ncurses5-compat-libs](https://aur.archlinu
 #### Setup Checkstyle
 
 Mapbox uses specific IDE settings related to code and check style.
-See [checkstyle guide](https://github.com/mapbox/mapbox-gl-native/wiki/Setting-up-Mapbox-checkstyle) for configuration details.
+See [checkstyle guide](https://github.com/mapbox/mapbox-gl-native-android/wiki/Setting-up-Mapbox-checkstyle) for configuration details.
 
 #### Resolving duplicate file entries
 With buck build support, Android Studio can complain about duplicate source files. To remove this warning, open `MapboxGLAndroidSDK.iml` find the list of `excludeFolder` entries and add `<excludeFolder url="file://$MODULE_DIR$/../../../misc/" />` line.
 
-##### Setting Mapbox Access Token
+##### Setting API Key
 
-_The test application (used for development purposes) uses Mapbox vector tiles, which require a Mapbox account and API access token. Obtain a free access token on the [Mapbox account page](https://www.mapbox.com/studio/account/tokens/)._
+_The test application (used for development purposes) uses MapTiler vector tiles, which require a MapTiler account and API key._
 
-With the first gradle invocation, gradle will take the value of the `MAPBOX_ACCESS_TOKEN` environment variable and save it to `MapboxGLAndroidSDKTestApp/src/main/res/values/developer-config.xml`. If the environment variable wasn't set, you can edit `developer-config.xml` manually and add your access token to the `mapbox_access_token` resource.  
+With the first gradle invocation, gradle will take the value of the `MGL_API_KEY` environment variable and save it to `MapboxGLAndroidSDKTestApp/src/main/res/values/developer-config.xml`. If the environment variable wasn't set, you can edit `developer-config.xml` manually and add your api key to the `api_key` resource.  
 
 ### Running project
 
 Run the configuration for the `MapboxGLAndroidSDKTestApp` module and select a device or emulator to deploy on. Based on the selected device, the c++ code will be compiled for the related processor architecture. You can see the project compiling in the `View > Tool Windows > Gradle Console`.
 
-More information about building and distributing this project in [DISTRIBUTE.md](https://github.com/mapbox/mapbox-gl-native/blob/master/platform/android/DISTRIBUTE.md).
+More information about building and distributing this project in [DISTRIBUTE.md](DISTRIBUTE.md).
 
 ### Additional resources
 
 #### Using the SDK snapshot
 
-Instead of using the latest stable release of the Maps SDK for Android, you can use a "snapshot" or the beta version if there is one available. Our snapshots are built every time a Github pull request adds code to this repository's `master` branch. If you'd like to use a snapshot build, your Android project's gradle file should have -SNAPSHOT appended to the SDK version number. For example, the `7.3.0-SNAPSHOT` would look like:
+Instead of using the latest stable release of the Maps SDK for Android, you can use a "snapshot" or the beta version if there is one available. Our snapshots are built every time a Github pull request adds code to this repository's `master` branch. If you'd like to use a snapshot build, your Android project's gradle file should have -SNAPSHOT appended to the SDK version number:
 
 ```java
 // Mapbox SDK dependency
-implementation 'com.mapbox.mapboxsdk:mapbox-android-sdk:7.3.0-SNAPSHOT'
+implementation 'com.mapbox.mapboxsdk:mapbox-android-sdk:9.1.0-SNAPSHOT'
 ```
 
 You also need to have the section below in your build.gradle root folder to be able to resolve the SNAPSHOT dependencies:
@@ -115,4 +117,4 @@ allprojects {
 #### Symbolicating native crashes
 
 When hitting native crashes you can use ndk-stack to symbolicate crashes.
-More information in [this](https://github.com/mapbox/mapbox-gl-native/wiki/Getting-line-numbers-from-an-Android-crash-with-ndk-stack) guide.
+More information in [this](https://github.com/mapbox/mapbox-gl-native-android/wiki/Getting-line-numbers-from-an-Android-crash-with-ndk-stack) guide.

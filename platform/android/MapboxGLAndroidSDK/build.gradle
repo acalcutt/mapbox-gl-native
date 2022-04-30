@@ -2,24 +2,26 @@ apply plugin: 'com.android.library'
 apply plugin: "com.jaredsburrows.license"
 apply plugin: 'kotlin-android'
 apply from: "${rootDir}/gradle/native-build.gradle"
+apply plugin: 'com.mapbox.android.sdk.versions'
 
 dependencies {
     lintChecks project(":MapboxGLAndroidSDKLint")
-    api dependenciesList.mapboxAndroidTelemetry
     api dependenciesList.mapboxJavaGeoJSON
     api dependenciesList.mapboxAndroidGestures
-    api dependenciesList.mapboxAndroidAccounts
+
     implementation dependenciesList.mapboxJavaTurf
     implementation dependenciesList.supportAnnotations
     implementation dependenciesList.supportFragmentV4
     implementation dependenciesList.okhttp3
-    implementation dependenciesList.soLoader
+    implementation dependenciesList.gmsLocation
+
     testImplementation dependenciesList.junit
     testImplementation dependenciesList.mockito
     testImplementation dependenciesList.mockk
     testImplementation dependenciesList.robolectric
     testImplementation dependenciesList.kotlinLib
     testImplementation dependenciesList.commonsIO
+    testImplementation dependenciesList.assertjcore
 }
 
 android {
@@ -72,7 +74,7 @@ android {
 
     buildTypes {
         debug {
-            testCoverageEnabled true
+            testCoverageEnabled false
             jniDebuggable true
         }
     }
@@ -96,10 +98,12 @@ configurations {
     all*.exclude group: 'commons-logging', module: 'commons-logging'
     all*.exclude group: 'commons-collections', module: 'commons-collections'
 }
+
 apply from: "${rootDir}/gradle/gradle-javadoc.gradle"
 apply from: "${rootDir}/gradle/gradle-checkstyle.gradle"
 apply from: "${rootDir}/gradle/gradle-dependencies-graph.gradle"
 apply from: "${rootDir}/gradle/gradle-update-vendor-modules.gradle"
 apply from: "${rootDir}/gradle/android-nitpick.gradle"
-apply from: "${rootDir}/gradle/gradle-bintray.gradle"
-apply from: "${rootDir}/gradle/jacoco-report.gradle"
+apply from: "${rootDir}/gradle/gradle-publish.gradle"
+// intentionally disabled
+// apply from: "${rootDir}/gradle/jacoco-report.gradle"

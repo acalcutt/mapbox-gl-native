@@ -19,12 +19,14 @@
         }                                                                                          \
     }
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#define MBGL_VERTEX_ALIGN __declspec(align(4))
+#else
 #define MBGL_VERTEX_ALIGN __attribute__((aligned(4)))
+#endif
 
 namespace mbgl {
 namespace gfx {
-
-namespace {
 
 template <typename, std::size_t> struct AttributeDataTypeOf;
 template <> struct AttributeDataTypeOf<int8_t, 1> : std::integral_constant<AttributeDataType, AttributeDataType::Byte> {};
@@ -55,8 +57,6 @@ template <> struct AttributeDataTypeOf<float, 1> : std::integral_constant<Attrib
 template <> struct AttributeDataTypeOf<float, 2> : std::integral_constant<AttributeDataType, AttributeDataType::Float2> {};
 template <> struct AttributeDataTypeOf<float, 3> : std::integral_constant<AttributeDataType, AttributeDataType::Float3> {};
 template <> struct AttributeDataTypeOf<float, 4> : std::integral_constant<AttributeDataType, AttributeDataType::Float4> {};
-
-} // namespace
 
 template <typename T, std::size_t N>
 class AttributeType {
@@ -110,44 +110,44 @@ template <class...>
 struct VertexType;
 
 template <class A1>
-struct VertexType<A1> {
+struct MBGL_VERTEX_ALIGN VertexType<A1> {
     using Type = VertexType<A1>;
     typename A1::Value a1;
-} MBGL_VERTEX_ALIGN;
+};
 
 template <class A1, class A2>
-struct VertexType<A1, A2> {
+struct MBGL_VERTEX_ALIGN VertexType<A1, A2> {
     using Type = VertexType<A1, A2>;
     typename A1::Value a1;
     typename A2::Value a2;
-} MBGL_VERTEX_ALIGN;
+};
 
 template <class A1, class A2, class A3>
-struct VertexType<A1, A2, A3> {
+struct MBGL_VERTEX_ALIGN VertexType<A1, A2, A3> {
     using Type = VertexType<A1, A2, A3>;
     typename A1::Value a1;
     typename A2::Value a2;
     typename A3::Value a3;
-} MBGL_VERTEX_ALIGN;
+};
 
 template <class A1, class A2, class A3, class A4>
-struct VertexType<A1, A2, A3, A4> {
+struct MBGL_VERTEX_ALIGN VertexType<A1, A2, A3, A4> {
     using Type = VertexType<A1, A2, A3, A4>;
     typename A1::Value a1;
     typename A2::Value a2;
     typename A3::Value a3;
     typename A4::Value a4;
-} MBGL_VERTEX_ALIGN;
+};
 
 template <class A1, class A2, class A3, class A4, class A5>
-struct VertexType<A1, A2, A3, A4, A5> {
+struct MBGL_VERTEX_ALIGN VertexType<A1, A2, A3, A4, A5> {
     using Type = VertexType<A1, A2, A3, A4, A5>;
     typename A1::Value a1;
     typename A2::Value a2;
     typename A3::Value a3;
     typename A4::Value a4;
     typename A5::Value a5;
-} MBGL_VERTEX_ALIGN;
+};
 
 template <class>
 struct Descriptor;
